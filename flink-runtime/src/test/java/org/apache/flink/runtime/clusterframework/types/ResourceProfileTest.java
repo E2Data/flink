@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.clusterframework.types;
 
+import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.junit.Test;
 
@@ -31,10 +32,10 @@ public class ResourceProfileTest {
 
 	@Test
 	public void testMatchRequirement() throws Exception {
-		ResourceProfile rp1 = new ResourceProfile(1.0, 100, 100, 100, 0, Collections.emptyMap());
-		ResourceProfile rp2 = new ResourceProfile(1.0, 200, 200, 200, 0, Collections.emptyMap());
-		ResourceProfile rp3 = new ResourceProfile(2.0, 100, 100, 100, 0, Collections.emptyMap());
-		ResourceProfile rp4 = new ResourceProfile(2.0, 200, 200, 200, 0, Collections.emptyMap());
+		ResourceProfile rp1 = new ResourceProfile(ProcessingUnitType.ANY, 1.0, 100, 100, 100, 0, Collections.emptyMap());
+		ResourceProfile rp2 = new ResourceProfile(ProcessingUnitType.ANY, 1.0, 200, 200, 200, 0, Collections.emptyMap());
+		ResourceProfile rp3 = new ResourceProfile(ProcessingUnitType.ANY,2.0, 100, 100, 100, 0, Collections.emptyMap());
+		ResourceProfile rp4 = new ResourceProfile(ProcessingUnitType.ANY,2.0, 200, 200, 200, 0, Collections.emptyMap());
 
 		assertFalse(rp1.isMatching(rp2));
 		assertTrue(rp2.isMatching(rp1));
@@ -50,7 +51,7 @@ public class ResourceProfileTest {
 		assertTrue(rp4.isMatching(rp3));
 		assertTrue(rp4.isMatching(rp4));
 
-		ResourceProfile rp5 = new ResourceProfile(2.0, 100, 100, 100, 100, null);
+		ResourceProfile rp5 = new ResourceProfile(ProcessingUnitType.ANY, 2.0, 100, 100, 100, 100, null);
 		assertFalse(rp4.isMatching(rp5));
 
 		ResourceSpec rs1 = ResourceSpec.newBuilder().
@@ -140,7 +141,7 @@ public class ResourceProfileTest {
 				build();
 		ResourceProfile rp = ResourceProfile.fromResourceSpec(rs, 50);
 
-		assertEquals(1.0, rp.getCpuCores(), 0.000001);
+		assertEquals(1.0, rp.getCores(), 0.000001);
 		assertEquals(150, rp.getMemoryInMB());
 		assertEquals(100, rp.getOperatorsMemoryInMB());
 		assertEquals(1.6, rp.getExtendedResources().get(ResourceSpec.GPU_NAME).getValue(), 0.000001);

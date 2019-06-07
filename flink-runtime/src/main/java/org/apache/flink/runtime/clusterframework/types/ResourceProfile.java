@@ -20,6 +20,7 @@ package org.apache.flink.runtime.clusterframework.types;
 
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.resources.Resource;
+import org.apache.flink.api.common.ProcessingUnitType;
 
 import javax.annotation.Nonnull;
 
@@ -39,7 +40,7 @@ import java.util.Objects;
  * <p>Resource Profiles have a total ordering, defined by comparing these fields in sequence:
  * <ol>
  *     <li>Memory Size</li>
- *     <li>CPU cores</li>
+ *     <li>Cores</li>
  *     <li>Extended resources</li>
  * </ol>
  * The extended resources are compared ordered by the resource names.
@@ -51,12 +52,19 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	public static final ResourceProfile UNKNOWN = new ResourceProfile(-1.0, -1);
 
 	/** ResourceProfile which matches any other ResourceProfile. */
-	public static final ResourceProfile ANY = new ResourceProfile(Double.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Collections.emptyMap());
+	public static final ResourceProfile ANY = new ResourceProfile(ProcessingUnitType.ANY, Double.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Collections.emptyMap());
+	public static final ResourceProfile ANY_GPU = new ResourceProfile(ProcessingUnitType.GPU, Double.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Collections.emptyMap());
+	public static final ResourceProfile ANY_CPU = new ResourceProfile(ProcessingUnitType.CPU, Double.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Collections.emptyMap());
+
 
 	// ------------------------------------------------------------------------
 
-	/** How many cpu cores are needed, use double so we can specify cpu like 0.1. */
-	private final double cpuCores;
+
+	/** Which processing unit type is needed*/
+	private final ProcessingUnitType processingUnitType;
+
+	/** How many cores are needed, use double so we can specify cpu like 0.1. */
+	private final double cores;
 
 	/** How many heap memory in mb are needed. */
 	private final int heapMemoryInMB;
@@ -78,7 +86,7 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	/**
 	 * Creates a new ResourceProfile.
 	 *
-	 * @param cpuCores The number of CPU cores (possibly fractional, i.e., 0.2 cores)
+	 * @param cores The number of cores (possibly fractional, i.e., 0.2 cores)
 	 * @param heapMemoryInMB The size of the heap memory, in megabytes.
 	 * @param directMemoryInMB The size of the direct memory, in megabytes.
 	 * @param nativeMemoryInMB The size of the native memory, in megabytes.
@@ -86,13 +94,15 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	 * @param extendedResources The extended resources such as GPU and FPGA
 	 */
 	public ResourceProfile(
-			double cpuCores,
+			ProcessingUnitType processingUnitType,
+			double cores,
 			int heapMemoryInMB,
 			int directMemoryInMB,
 			int nativeMemoryInMB,
 			int networkMemoryInMB,
 			Map<String, Resource> extendedResources) {
-		this.cpuCores = cpuCores;
+		this.processingUnitType = processingUnitType;
+		this.cores = cores;
 		this.heapMemoryInMB = heapMemoryInMB;
 		this.directMemoryInMB = directMemoryInMB;
 		this.nativeMemoryInMB = nativeMemoryInMB;
@@ -105,11 +115,11 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	/**
 	 * Creates a new simple ResourceProfile used for testing.
 	 *
-	 * @param cpuCores The number of CPU cores (possibly fractional, i.e., 0.2 cores)
+	 * @param cores The number of  cores (possibly fractional, i.e., 0.2 cores)
 	 * @param heapMemoryInMB The size of the heap memory, in megabytes.
 	 */
-	public ResourceProfile(double cpuCores, int heapMemoryInMB) {
-		this(cpuCores, heapMemoryInMB, 0, 0, 0, Collections.emptyMap());
+	public ResourceProfile(double cores, int heapMemoryInMB) {
+		this(ProcessingUnitType.ANY, cores, heapMemoryInMB, 0, 0, 0, Collections.emptyMap());
 	}
 
 	/**
@@ -118,7 +128,8 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	 * @param other The ResourceProfile to copy.
 	 */
 	public ResourceProfile(ResourceProfile other) {
-		this(other.cpuCores,
+		this(other.processingUnitType,
+				other.cores,
 				other.heapMemoryInMB,
 				other.directMemoryInMB,
 				other.nativeMemoryInMB,
@@ -129,12 +140,21 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	// ------------------------------------------------------------------------
 
 	/**
-	 * Get the cpu cores needed.
+	 * Get the  processing unit type needed.
 	 *
-	 * @return The cpu cores, 1.0 means a full cpu thread
+	 * @return The  processing unit type
 	 */
-	public double getCpuCores() {
-		return cpuCores;
+	public ProcessingUnitType getProcessingUnitType() {
+		return processingUnitType;
+	}
+
+	/**
+	 * Get the cores needed.
+	 *
+	 * @return The cores, 1.0 means a full cpu thread
+	 */
+	public double getCores() {
+		return cores;
 	}
 
 	/**
@@ -206,11 +226,15 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	 * @return true if the requirement is matched, otherwise false
 	 */
 	public boolean isMatching(ResourceProfile required) {
-		if (cpuCores >= required.getCpuCores() &&
+		if (cores >= required.getCores() &&
 				heapMemoryInMB >= required.getHeapMemoryInMB() &&
 				directMemoryInMB >= required.getDirectMemoryInMB() &&
 				nativeMemoryInMB >= required.getNativeMemoryInMB() &&
-				networkMemoryInMB >= required.getNetworkMemoryInMB()) {
+				networkMemoryInMB >= required.getNetworkMemoryInMB() && (
+				processingUnitType.equals(required.getProcessingUnitType())
+						|| required.getProcessingUnitType().equals(ProcessingUnitType.ANY)
+						|| this.processingUnitType.equals(ProcessingUnitType.ANY)))
+		{
 			for (Map.Entry<String, Resource> resource : required.extendedResources.entrySet()) {
 				if (!extendedResources.containsKey(resource.getKey()) ||
 						!extendedResources.get(resource.getKey()).getResourceAggregateType().equals(resource.getValue().getResourceAggregateType()) ||
@@ -227,7 +251,7 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 	public int compareTo(@Nonnull ResourceProfile other) {
 		int cmp = Integer.compare(this.getMemoryInMB(), other.getMemoryInMB());
 		if (cmp == 0) {
-			cmp = Double.compare(this.cpuCores, other.cpuCores);
+			cmp = Double.compare(this.cores, other.cores);
 		}
 		if (cmp == 0) {
 			Iterator<Map.Entry<String, Resource>> thisIterator = extendedResources.entrySet().iterator();
@@ -259,8 +283,8 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 
 	@Override
 	public int hashCode() {
-		final long cpuBits =  Double.doubleToLongBits(cpuCores);
-		int result = (int) (cpuBits ^ (cpuBits >>> 32));
+		final long coresBits =  Double.doubleToLongBits(cores);
+		int result = (int) (coresBits ^ (coresBits >>> 32));
 		result = 31 * result + heapMemoryInMB;
 		result = 31 * result + directMemoryInMB;
 		result = 31 * result + nativeMemoryInMB;
@@ -276,10 +300,11 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 		}
 		else if (obj != null && obj.getClass() == ResourceProfile.class) {
 			ResourceProfile that = (ResourceProfile) obj;
-			return this.cpuCores == that.cpuCores &&
+			return this.cores == that.cores &&
 					this.heapMemoryInMB == that.heapMemoryInMB &&
 					this.directMemoryInMB == that.directMemoryInMB &&
 					this.networkMemoryInMB == that.networkMemoryInMB &&
+					this.processingUnitType == that.processingUnitType &&
 					Objects.equals(extendedResources, that.extendedResources);
 		}
 		return false;
@@ -292,7 +317,8 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 			resources.append(", ").append(resource.getKey()).append('=').append(resource.getValue());
 		}
 		return "ResourceProfile{" +
-			"cpuCores=" + cpuCores +
+			"processingUnitType="+processingUnitType+
+			"cores=" + cores +
 			", heapMemoryInMB=" + heapMemoryInMB +
 			", directMemoryInMB=" + directMemoryInMB +
 			", nativeMemoryInMB=" + nativeMemoryInMB +
@@ -300,11 +326,12 @@ public class ResourceProfile implements Serializable, Comparable<ResourceProfile
 			'}';
 	}
 
-	static ResourceProfile fromResourceSpec(ResourceSpec resourceSpec, int networkMemory) {
+	public static ResourceProfile fromResourceSpec(ResourceSpec resourceSpec, int networkMemory) {
 		Map<String, Resource> copiedExtendedResources = new HashMap<>(resourceSpec.getExtendedResources());
 
 		return new ResourceProfile(
-				resourceSpec.getCpuCores(),
+				resourceSpec.getProcessingUnitType(),
+				resourceSpec.getCores(),
 				resourceSpec.getHeapMemory(),
 				resourceSpec.getDirectMemory(),
 				resourceSpec.getNativeMemory(),

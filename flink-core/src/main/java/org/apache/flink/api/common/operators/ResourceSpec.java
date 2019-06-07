@@ -21,6 +21,7 @@ package org.apache.flink.api.common.operators;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.resources.GPUResource;
 import org.apache.flink.api.common.resources.Resource;
+import org.apache.flink.api.common.ProcessingUnitType;
 
 import javax.annotation.Nonnull;
 
@@ -51,12 +52,15 @@ public class ResourceSpec implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	public static final ResourceSpec DEFAULT = new ResourceSpec(0, 0, 0, 0, 0);
+	public static final ResourceSpec DEFAULT = new ResourceSpec(ProcessingUnitType.ANY, 0, 0, 0, 0, 0);
 
 	public static final String GPU_NAME = "GPU";
 
-	/** How many cpu cores are needed, use double so we can specify cpu like 0.1. */
-	private final double cpuCores;
+	/** Which processing unit type is needed*/
+	private final ProcessingUnitType processingUnitType;
+
+	/** How many cores are needed, use double so we can specify cpu like 0.1. */
+	private final double cores;
 
 	/** How many java heap memory in mb are needed. */
 	private final int heapMemoryInMB;
@@ -75,21 +79,23 @@ public class ResourceSpec implements Serializable {
 	/**
 	 * Creates a new ResourceSpec with full resources.
 	 *
-	 * @param cpuCores The number of CPU cores (possibly fractional, i.e., 0.2 cores)
+	 * @param cores The number of cores (possibly fractional, i.e., 0.2 cores)
 	 * @param heapMemoryInMB The size of the java heap memory, in megabytes.
 	 * @param directMemoryInMB The size of the java nio direct memory, in megabytes.
 	 * @param nativeMemoryInMB The size of the native memory, in megabytes.
 	 * @param stateSizeInMB The state size for storing in checkpoint.
 	 * @param extendedResources The extended resources, associated with the resource manager used
 	 */
-	protected ResourceSpec(
-			double cpuCores,
+	public ResourceSpec(
+			ProcessingUnitType processingUnitType,
+			double cores,
 			int heapMemoryInMB,
 			int directMemoryInMB,
 			int nativeMemoryInMB,
 			int stateSizeInMB,
 			Resource... extendedResources) {
-		this.cpuCores = cpuCores;
+		this.processingUnitType = processingUnitType;
+		this.cores = cores;
 		this.heapMemoryInMB = heapMemoryInMB;
 		this.directMemoryInMB = directMemoryInMB;
 		this.nativeMemoryInMB = nativeMemoryInMB;
@@ -109,8 +115,21 @@ public class ResourceSpec implements Serializable {
 	 * @return The new resource with merged values.
 	 */
 	public ResourceSpec merge(ResourceSpec other) {
+		/*
+		Two ResourceSpec instances are merged when the JobGraphGenerator chains
+		individual operators into tasks. This happens before the JobGraph is
+		assed to the HAIER scheduler to assign tasks to different devices.
+		Therefore every merged task should have ProcessingUnitType.ANY at this
+		point.
+		 */
+		if (this.processingUnitType != ProcessingUnitType.ANY ||
+				other.processingUnitType != ProcessingUnitType.ANY) {
+			throw new IllegalStateException(
+					"ResourceSpec must have ProcessingUnitType.ANY to be merged.");
+		}
 		ResourceSpec target = new ResourceSpec(
-				Math.max(this.cpuCores, other.cpuCores),
+				ProcessingUnitType.ANY,
+				Math.max(this.cores, other.cores),
 				this.heapMemoryInMB + other.heapMemoryInMB,
 				this.directMemoryInMB + other.directMemoryInMB,
 				this.nativeMemoryInMB + other.nativeMemoryInMB,
@@ -122,8 +141,12 @@ public class ResourceSpec implements Serializable {
 		return target;
 	}
 
-	public double getCpuCores() {
-		return this.cpuCores;
+	public ProcessingUnitType getProcessingUnitType() {
+		return processingUnitType;
+	}
+
+	public double getCores() {
+		return this.cores;
 	}
 
 	public int getHeapMemory() {
@@ -161,7 +184,7 @@ public class ResourceSpec implements Serializable {
 	 * @return True if all the values are equal or greater than 0, otherwise false.
 	 */
 	public boolean isValid() {
-		if (this.cpuCores >= 0 && this.heapMemoryInMB >= 0 && this.directMemoryInMB >= 0 &&
+		if (this.cores >= 0 && this.heapMemoryInMB >= 0 && this.directMemoryInMB >= 0 &&
 				this.nativeMemoryInMB >= 0 && this.stateSizeInMB >= 0) {
 			for (Resource resource : extendedResources.values()) {
 				if (resource.getValue() < 0) {
@@ -182,7 +205,7 @@ public class ResourceSpec implements Serializable {
 	 * @return True if current resource is less than or equal with the other resource, otherwise return false.
 	 */
 	public boolean lessThanOrEqual(@Nonnull ResourceSpec other) {
-		int cmp1 = Double.compare(this.cpuCores, other.cpuCores);
+		int cmp1 = Double.compare(this.cores, other.cores);
 		int cmp2 = Integer.compare(this.heapMemoryInMB, other.heapMemoryInMB);
 		int cmp3 = Integer.compare(this.directMemoryInMB, other.directMemoryInMB);
 		int cmp4 = Integer.compare(this.nativeMemoryInMB, other.nativeMemoryInMB);
@@ -206,11 +229,12 @@ public class ResourceSpec implements Serializable {
 			return true;
 		} else if (obj != null && obj.getClass() == ResourceSpec.class) {
 			ResourceSpec that = (ResourceSpec) obj;
-			return this.cpuCores == that.cpuCores &&
+			return this.cores == that.cores &&
 					this.heapMemoryInMB == that.heapMemoryInMB &&
 					this.directMemoryInMB == that.directMemoryInMB &&
 					this.nativeMemoryInMB == that.nativeMemoryInMB &&
 					this.stateSizeInMB == that.stateSizeInMB &&
+					this.processingUnitType == that.getProcessingUnitType() &&
 					Objects.equals(this.extendedResources, that.extendedResources);
 		} else {
 			return false;
@@ -219,8 +243,8 @@ public class ResourceSpec implements Serializable {
 
 	@Override
 	public int hashCode() {
-		final long cpuBits =  Double.doubleToLongBits(cpuCores);
-		int result = (int) (cpuBits ^ (cpuBits >>> 32));
+		final long coreBits =  Double.doubleToLongBits(cores);
+		int result = (int) (coreBits ^ (coreBits >>> 32));
 		result = 31 * result + heapMemoryInMB;
 		result = 31 * result + directMemoryInMB;
 		result = 31 * result + nativeMemoryInMB;
@@ -236,7 +260,7 @@ public class ResourceSpec implements Serializable {
 			extend += ", " + resource.getName() + "=" + resource.getValue();
 		}
 		return "ResourceSpec{" +
-				"cpuCores=" + cpuCores +
+				"cores=" + cores +
 				", heapMemoryInMB=" + heapMemoryInMB +
 				", directMemoryInMB=" + directMemoryInMB +
 				", nativeMemoryInMB=" + nativeMemoryInMB +
@@ -253,15 +277,21 @@ public class ResourceSpec implements Serializable {
 	 */
 	public static class Builder {
 
-		private double cpuCores;
+		private ProcessingUnitType processingUnitType = ProcessingUnitType.ANY;
+		private double cores;
 		private int heapMemoryInMB;
 		private int directMemoryInMB;
 		private int nativeMemoryInMB;
 		private int stateSizeInMB;
 		private GPUResource gpuResource;
 
-		public Builder setCpuCores(double cpuCores) {
-			this.cpuCores = cpuCores;
+		public Builder setProcessingUnitType(ProcessingUnitType processingUnitType) {
+			this.processingUnitType = processingUnitType;
+			return this;
+		}
+
+		public Builder setCpuCores(double cores) {
+			this.cores = cores;
 			return this;
 		}
 
@@ -292,7 +322,8 @@ public class ResourceSpec implements Serializable {
 
 		public ResourceSpec build() {
 			return new ResourceSpec(
-				cpuCores,
+				processingUnitType,
+				cores,
 				heapMemoryInMB,
 				directMemoryInMB,
 				nativeMemoryInMB,
