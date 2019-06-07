@@ -64,6 +64,8 @@ public class TaskManagerServicesConfiguration {
 
 	private final int numberOfSlots;
 
+	private final boolean useAccelerators;
+
 	private final NetworkEnvironmentConfiguration networkConfig;
 
 	private final QueryableStateConfiguration queryableStateConfig;
@@ -87,20 +89,16 @@ public class TaskManagerServicesConfiguration {
 
 	private Optional<Time> systemResourceMetricsProbingInterval;
 
-	public TaskManagerServicesConfiguration(
-			InetAddress taskManagerAddress,
-			String[] tmpDirPaths,
-			String[] localRecoveryStateRootDirectories,
-			boolean localRecoveryEnabled,
-			NetworkEnvironmentConfiguration networkConfig,
-			QueryableStateConfiguration queryableStateConfig,
-			int numberOfSlots,
-			long configuredMemory,
-			MemoryType memoryType,
-			boolean preAllocateMemory,
-			float memoryFraction,
-			long timerServiceShutdownTimeout,
-			Optional<Time> systemResourceMetricsProbingInterval) {
+	public TaskManagerServicesConfiguration(InetAddress taskManagerAddress,
+											String[] tmpDirPaths, String[] localRecoveryStateRootDirectories,
+											boolean localRecoveryEnabled,
+											NetworkEnvironmentConfiguration networkConfig,
+											QueryableStateConfiguration queryableStateConfig,
+											int numberOfSlots,
+											boolean useAccelerators, long configuredMemory,
+											MemoryType memoryType, boolean preAllocateMemory,
+											float memoryFraction, long timerServiceShutdownTimeout,
+											Optional<Time> systemResourceMetricsProbingInterval) {
 
 		this.taskManagerAddress = checkNotNull(taskManagerAddress);
 		this.tmpDirPaths = checkNotNull(tmpDirPaths);
@@ -109,7 +107,7 @@ public class TaskManagerServicesConfiguration {
 		this.networkConfig = checkNotNull(networkConfig);
 		this.queryableStateConfig = checkNotNull(queryableStateConfig);
 		this.numberOfSlots = checkNotNull(numberOfSlots);
-
+		this.useAccelerators = checkNotNull(useAccelerators);
 		this.configuredMemory = configuredMemory;
 		this.memoryType = checkNotNull(memoryType);
 		this.preAllocateMemory = preAllocateMemory;
@@ -215,6 +213,8 @@ public class TaskManagerServicesConfiguration {
 			slots = 1;
 		}
 
+		boolean useAccelerators = configuration.getBoolean(TaskManagerOptions.USE_ACCELERATORS);
+
 		final String[] tmpDirs = ConfigurationUtils.parseTempDirectories(configuration);
 		String[] localStateRootDir = ConfigurationUtils.parseLocalStateDirectories(configuration);
 
@@ -276,19 +276,20 @@ public class TaskManagerServicesConfiguration {
 		long timerServiceShutdownTimeout = AkkaUtils.getTimeout(configuration).toMillis();
 
 		return new TaskManagerServicesConfiguration(
-			remoteAddress,
-			tmpDirs,
-			localStateRootDir,
-			localRecoveryMode,
-			networkConfig,
-			queryableStateConfig,
-			slots,
-			configuredMemory,
-			memType,
-			preAllocateMemory,
-			memoryFraction,
-			timerServiceShutdownTimeout,
-			ConfigurationUtils.getSystemResourceMetricsProbingInterval(configuration));
+				remoteAddress,
+				tmpDirs,
+				localStateRootDir,
+				localRecoveryMode,
+				networkConfig,
+				queryableStateConfig,
+				slots,
+				useAccelerators,
+				configuredMemory,
+				memType,
+				preAllocateMemory,
+				memoryFraction,
+				timerServiceShutdownTimeout,
+				ConfigurationUtils.getSystemResourceMetricsProbingInterval(configuration));
 	}
 
 	// --------------------------------------------------------------------------
@@ -504,5 +505,9 @@ public class TaskManagerServicesConfiguration {
 			throw new IllegalConfigurationException("Invalid configuration value for " +
 					name + " : " + parameter + " - " + errorMessage);
 		}
+	}
+
+	public boolean isUseAccelerators() {
+		return useAccelerators;
 	}
 }

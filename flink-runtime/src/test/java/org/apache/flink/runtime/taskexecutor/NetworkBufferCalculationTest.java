@@ -98,18 +98,17 @@ public class NetworkBufferCalculationTest extends TestLogger {
 			null);
 
 		return new TaskManagerServicesConfiguration(
-			InetAddress.getLoopbackAddress(),
-			new String[] {},
-			new String[] {},
-			false,
-			networkConfig,
-			QueryableStateConfiguration.disabled(),
-			1,
-			managedMemory,
-			memType,
-			false,
-			managedMemoryFraction,
-			0,
-			Optional.empty());
+                InetAddress.getLoopbackAddress(),
+                new String[] {},
+                new String[] {},
+                false,
+                networkConfig,
+                QueryableStateConfiguration.disabled(),
+                1, false, managedMemory,
+                memType,
+                false,
+                managedMemoryFraction,
+                0,
+                Optional.empty());
 	}
 }

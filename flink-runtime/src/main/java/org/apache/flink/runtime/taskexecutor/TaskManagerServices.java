@@ -246,7 +246,11 @@ public class TaskManagerServices {
 		final List<ResourceProfile> resourceProfiles = new ArrayList<>(taskManagerServicesConfiguration.getNumberOfSlots());
 
 		for (int i = 0; i < taskManagerServicesConfiguration.getNumberOfSlots(); i++) {
-			resourceProfiles.add(ResourceProfile.ANY);
+			resourceProfiles.add(ResourceProfile.ANY_CPU);
+		}
+
+		if (taskManagerServicesConfiguration.isUseAccelerators()) {
+			
 		}
 
 		final TimerService<AllocationID> timerService = new TimerService<>(
