@@ -65,6 +65,8 @@ public class TaskManagerServicesConfiguration {
 
 	private final int numberOfSlots;
 
+	private final boolean useAccelerators;
+
 	@Nullable
 	private final QueryableStateConfiguration queryableStateConfig;
 
@@ -96,6 +98,7 @@ public class TaskManagerServicesConfiguration {
 			boolean localRecoveryEnabled,
 			@Nullable QueryableStateConfiguration queryableStateConfig,
 			int numberOfSlots,
+			boolean useAccelerators,
 			int pageSize,
 			TaskExecutorResourceSpec taskExecutorResourceSpec,
 			long timerServiceShutdownTimeout,
@@ -115,6 +118,7 @@ public class TaskManagerServicesConfiguration {
 		this.localRecoveryEnabled = checkNotNull(localRecoveryEnabled);
 		this.queryableStateConfig = queryableStateConfig;
 		this.numberOfSlots = checkNotNull(numberOfSlots);
+		this.useAccelerators = checkNotNull(useAccelerators);
 
 		this.pageSize = pageSize;
 
@@ -177,6 +181,10 @@ public class TaskManagerServicesConfiguration {
 
 	public int getNumberOfSlots() {
 		return numberOfSlots;
+	}
+
+	public boolean isUseAccelerators() {
+		return useAccelerators;
 	}
 
 	public int getPageSize() {
@@ -246,6 +254,8 @@ public class TaskManagerServicesConfiguration {
 
 		boolean localRecoveryMode = configuration.getBoolean(CheckpointingOptions.LOCAL_RECOVERY);
 
+		boolean useAccelerators = configuration.getBoolean(TaskManagerOptions.USE_ACCELERATORS);
+
 		final QueryableStateConfiguration queryableStateConfig = QueryableStateConfiguration.fromConfiguration(configuration);
 
 		long timerServiceShutdownTimeout = AkkaUtils.getTimeout(configuration).toMillis();
@@ -274,6 +284,7 @@ public class TaskManagerServicesConfiguration {
 			localRecoveryMode,
 			queryableStateConfig,
 			ConfigurationParserUtils.getSlot(configuration),
+			useAccelerators,
 			ConfigurationParserUtils.getPageSize(configuration),
 			taskExecutorResourceSpec,
 			timerServiceShutdownTimeout,

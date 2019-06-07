@@ -18,11 +18,15 @@
 
 package org.apache.flink.runtime.clusterframework.types;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.resources.CPUResource;
 import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.api.common.ProcessingUnitType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -53,6 +57,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class ResourceProfile implements Serializable {
 
+	private static final Logger LOG = LoggerFactory.getLogger(ResourceProfile.class);
+
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -75,6 +81,32 @@ public class ResourceProfile implements Serializable {
 		.setNetworkMemory(MemorySize.MAX_VALUE)
 		.build();
 
+	/**
+	 * A ResourceProfile that indicates infinite resource that matches any CPU resource requirement, for testability purpose only.
+	 */
+	@VisibleForTesting
+	public static final ResourceProfile ANY_CPU = newBuilder()
+		.setProcessingUnitType(ProcessingUnitType.CPU)
+		.setCpuCores(Double.MAX_VALUE)
+		.setTaskHeapMemory(MemorySize.MAX_VALUE)
+		.setTaskOffHeapMemory(MemorySize.MAX_VALUE)
+		.setManagedMemory(MemorySize.MAX_VALUE)
+		.setNetworkMemory(MemorySize.MAX_VALUE)
+		.build();
+
+	/**
+	 * A ResourceProfile that indicates infinite resource that matches any GPU resource requirement, for testability purpose only.
+	 */
+	@VisibleForTesting
+	public static final ResourceProfile ANY_GPU = newBuilder()
+		.setProcessingUnitType(ProcessingUnitType.GPU)
+		.setCpuCores(Double.MAX_VALUE)
+		.setTaskHeapMemory(MemorySize.MAX_VALUE)
+		.setTaskOffHeapMemory(MemorySize.MAX_VALUE)
+		.setManagedMemory(MemorySize.MAX_VALUE)
+		.setNetworkMemory(MemorySize.MAX_VALUE)
+		.build();
+
 	/** A ResourceProfile describing zero resources. */
 	public static final ResourceProfile ZERO = newBuilder().build();
 
@@ -85,6 +117,9 @@ public class ResourceProfile implements Serializable {
 	static final MemorySize MAX_MEMORY_SIZE_TO_LOG = new MemorySize(1L << 50); // 1Pb
 
 	// ------------------------------------------------------------------------
+
+	/** Which processing unit type is needed*/
+	private final ProcessingUnitType processingUnitType;
 
 	/** How many cpu cores are needed. Can be null only if it is unknown. */
 	@Nullable
@@ -113,7 +148,7 @@ public class ResourceProfile implements Serializable {
 
 	/**
 	 * Creates a new ResourceProfile.
-	 *
+	 * @param processingUnitType The type of processing resource (e.g., a CPU, GPU, FPGA, etc.)
 	 * @param cpuCores The number of CPU cores (possibly fractional, i.e., 0.2 cores)
 	 * @param taskHeapMemory The size of the task heap memory.
 	 * @param taskOffHeapMemory The size of the task off-heap memory.
@@ -122,6 +157,7 @@ public class ResourceProfile implements Serializable {
 	 * @param extendedResources The extended resources such as GPU and FPGA
 	 */
 	private ResourceProfile(
+			ProcessingUnitType processingUnitType,
 			final Resource cpuCores,
 			final MemorySize taskHeapMemory,
 			final MemorySize taskOffHeapMemory,
@@ -132,6 +168,7 @@ public class ResourceProfile implements Serializable {
 		checkNotNull(cpuCores);
 		checkArgument(cpuCores instanceof CPUResource, "cpuCores must be CPUResource");
 
+		this.processingUnitType = processingUnitType;
 		this.cpuCores = cpuCores;
 		this.taskHeapMemory = checkNotNull(taskHeapMemory);
 		this.taskOffHeapMemory = checkNotNull(taskOffHeapMemory);
@@ -146,6 +183,7 @@ public class ResourceProfile implements Serializable {
 	 * Creates a special ResourceProfile with negative values, indicating resources are unspecified.
 	 */
 	private ResourceProfile() {
+		this.processingUnitType = ProcessingUnitType.ANY;
 		this.cpuCores = null;
 		this.taskHeapMemory = null;
 		this.taskOffHeapMemory = null;
@@ -154,6 +192,16 @@ public class ResourceProfile implements Serializable {
 	}
 
 	// ------------------------------------------------------------------------
+
+	/**
+	 * Get the  processing unit type needed.
+	 *
+	 * @return The  processing unit type
+	 */
+	public ProcessingUnitType getProcessingUnitType() {
+		throwUnsupportedOperationExecptionIfUnknown();
+		return processingUnitType;
+	}
 
 	/**
 	 * Get the cpu cores needed.
@@ -270,16 +318,22 @@ public class ResourceProfile implements Serializable {
 			taskHeapMemory.compareTo(required.taskHeapMemory) >= 0 &&
 			taskOffHeapMemory.compareTo(required.taskOffHeapMemory) >= 0 &&
 			managedMemory.compareTo(required.managedMemory) >= 0 &&
-			networkMemory.compareTo(required.networkMemory) >= 0) {
-
+			networkMemory.compareTo(required.networkMemory) >= 0 &&
+			(processingUnitType.equals(required.getProcessingUnitType())
+				|| required.getProcessingUnitType().equals(ProcessingUnitType.ANY)
+				|| this.processingUnitType.equals(ProcessingUnitType.ANY)))
+		{
 			for (Map.Entry<String, Resource> resource : required.extendedResources.entrySet()) {
 				if (!extendedResources.containsKey(resource.getKey()) ||
 					extendedResources.get(resource.getKey()).getValue().compareTo(resource.getValue().getValue()) < 0) {
+					LOG.debug("Request for match on: " + required + " where self is: " + this + " is false");
 					return false;
 				}
 			}
+			LOG.debug("Request for match on: " + required + " where self is: " + this + " is true");
 			return true;
 		}
+		LOG.debug("Request for match on: " + required + " where self is: " + this + " is false");
 		return false;
 	}
 
@@ -292,6 +346,7 @@ public class ResourceProfile implements Serializable {
 		result = 31 * result + Objects.hashCode(taskOffHeapMemory);
 		result = 31 * result + Objects.hashCode(managedMemory);
 		result = 31 * result + Objects.hashCode(networkMemory);
+		result = 31 * result + processingUnitType.hashCode();
 		result = 31 * result + extendedResources.hashCode();
 		return result;
 	}
@@ -302,7 +357,8 @@ public class ResourceProfile implements Serializable {
 			return true;
 		} else if (obj != null && obj.getClass() == ResourceProfile.class) {
 			ResourceProfile that = (ResourceProfile) obj;
-			return Objects.equals(this.cpuCores, that.cpuCores) &&
+			return this.processingUnitType == that.processingUnitType &&
+				Objects.equals(this.cpuCores, that.cpuCores) &&
 				Objects.equals(taskHeapMemory, that.taskHeapMemory) &&
 				Objects.equals(taskOffHeapMemory, that.taskOffHeapMemory) &&
 				Objects.equals(managedMemory, that.managedMemory) &&
@@ -330,6 +386,8 @@ public class ResourceProfile implements Serializable {
 			return UNKNOWN;
 		}
 
+		// FIXME: ensure that both profiles have the same ProcessingUnitType
+
 		Map<String, Resource> resultExtendedResource = new HashMap<>(extendedResources);
 
 		other.extendedResources.forEach((String name, Resource resource) -> {
@@ -338,6 +396,7 @@ public class ResourceProfile implements Serializable {
 		});
 
 		return new ResourceProfile(
+			processingUnitType,
 			cpuCores.merge(other.cpuCores),
 			taskHeapMemory.add(other.taskHeapMemory),
 			taskOffHeapMemory.add(other.taskOffHeapMemory),
@@ -354,6 +413,8 @@ public class ResourceProfile implements Serializable {
 	 */
 	public ResourceProfile subtract(final ResourceProfile other) {
 		checkNotNull(other, "Cannot subtract with null resources");
+
+		// FIXME: ensure that both profiles have the same ProcessingUnitType
 
 		if (equals(ANY) || other.equals(ANY)) {
 			return ANY;
@@ -375,6 +436,7 @@ public class ResourceProfile implements Serializable {
 		});
 
 		return new ResourceProfile(
+			processingUnitType,
 			cpuCores.subtract(other.cpuCores),
 			taskHeapMemory.subtract(other.taskHeapMemory),
 			taskOffHeapMemory.subtract(other.taskOffHeapMemory),
@@ -401,6 +463,7 @@ public class ResourceProfile implements Serializable {
 		}
 
 		return new ResourceProfile(
+			processingUnitType,
 			cpuCores.multiply(multiplier),
 			taskHeapMemory.multiply(multiplier),
 			taskOffHeapMemory.multiply(multiplier),
@@ -420,16 +483,32 @@ public class ResourceProfile implements Serializable {
 			return "ResourceProfile{ANY}";
 		}
 
+		if (this.equals(ANY_CPU)) {
+			return "ResourceProfile{ANY_CPU}";
+		}
+
+		if (this.equals(ANY_GPU)) {
+			return "ResourceProfile{ANY_GPU}";
+		}
+
 		final StringBuilder extendedResourceStr = new StringBuilder(extendedResources.size() * 10);
 		for (Map.Entry<String, Resource> resource : extendedResources.entrySet()) {
-			extendedResourceStr.append(", ").append(resource.getKey()).append('=').append(resource.getValue().getValue());
+			String key = resource.getKey();
+			Resource value = resource.getValue();
+			if (value == null) {
+				extendedResourceStr.append(", ").append(key).append("= null");
+			}
+			else {
+				extendedResourceStr.append(", ").append(key).append('=').append(value.getName());
+			}
 		}
 		return "ResourceProfile{" + getResourceString() + extendedResourceStr + '}';
 	}
 
 	private String getResourceString() {
-		String resourceStr = cpuCores == null || cpuCores.getValue().compareTo(MAX_CPU_CORE_NUMBER_TO_LOG) > 0 ?
-			"" : "cpuCores=" + cpuCores.getValue();
+		String resourceStr = "processingUnitType=" + processingUnitType;
+		resourceStr += cpuCores == null || cpuCores.getValue().compareTo(MAX_CPU_CORE_NUMBER_TO_LOG) > 0 ?
+			"" : ", cpuCores=" + cpuCores.getValue();
 		resourceStr = addMemorySizeString(resourceStr, "taskHeapMemory", taskHeapMemory);
 		resourceStr = addMemorySizeString(resourceStr, "taskOffHeapMemory", taskOffHeapMemory);
 		resourceStr = addMemorySizeString(resourceStr, "managedMemory", managedMemory);
@@ -459,6 +538,13 @@ public class ResourceProfile implements Serializable {
 			return ANY;
 		}
 
+		if (this.equals(ANY_CPU)) {
+			return ANY_CPU;
+		}
+
+		if (this.equals(ANY_GPU)) {
+			return ANY_GPU;
+		}
 		return this;
 	}
 
@@ -477,6 +563,7 @@ public class ResourceProfile implements Serializable {
 		}
 
 		return newBuilder()
+			.setProcessingUnitType(resourceSpec.getProcessingUnitType())
 			.setCpuCores(resourceSpec.getCpuCores())
 			.setTaskHeapMemory(resourceSpec.getTaskHeapMemory())
 			.setTaskOffHeapMemory(resourceSpec.getTaskOffHeapMemory())
@@ -503,6 +590,7 @@ public class ResourceProfile implements Serializable {
 	 */
 	public static class Builder {
 
+		private ProcessingUnitType processingUnitType = ProcessingUnitType.ANY;
 		private Resource cpuCores = new CPUResource(0.0);
 		private MemorySize taskHeapMemory = MemorySize.ZERO;
 		private MemorySize taskOffHeapMemory = MemorySize.ZERO;
@@ -511,6 +599,11 @@ public class ResourceProfile implements Serializable {
 		private Map<String, Resource> extendedResources = new HashMap<>();
 
 		private Builder() {
+		}
+
+		public Builder setProcessingUnitType(ProcessingUnitType processingUnitType) {
+			this.processingUnitType = processingUnitType;
+			return this;
 		}
 
 		public Builder setCpuCores(Resource cpuCores) {
@@ -577,6 +670,7 @@ public class ResourceProfile implements Serializable {
 
 		public ResourceProfile build() {
 			return new ResourceProfile(
+				processingUnitType,
 				cpuCores,
 				taskHeapMemory,
 				taskOffHeapMemory,

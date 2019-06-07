@@ -35,7 +35,8 @@ import java.util.Comparator;
  */
 public enum RestAPIVersion {
 	V0(0, false, false), // strictly for testing purposes
-	V1(1, true, true);
+	V1(1, true, true),
+	WS_V1(1, false, false);
 
 	private final int versionNumber;
 
@@ -55,7 +56,7 @@ public enum RestAPIVersion {
 	 * @return URL version prefix
 	 */
 	public String getURLVersionPrefix() {
-		return name().toLowerCase();
+		return name().toLowerCase().replace('_', '/');
 	}
 
 	/**

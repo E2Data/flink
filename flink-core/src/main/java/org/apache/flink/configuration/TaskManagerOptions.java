@@ -210,6 +210,18 @@ public class TaskManagerOptions {
 				" is typically proportional to the number of physical CPU cores that the TaskManager's machine has" +
 				" (e.g., equal to the number of cores, or half the number of cores).");
 
+	/**
+	 * The config parameter enabling or disabling hardware acceleration using the Tornado compiler.
+	 */
+	@Documentation.Section(Documentation.Sections.ALL_TASK_MANAGER)
+	public static final ConfigOption<Boolean> USE_ACCELERATORS =
+		key("taskmanager.useAccelerators")
+			.defaultValue(false)
+			.withDescription("Provide task slots for each accelerator installed on the node. If true, the TaskManager" +
+				" queries YARN to determine the installed accelerators in the node. For each" +
+				" accelerator, a task slot is created which specifies the YARN name of the" +
+				" accelerator in its ResourceProfile (extended resource key 'accelerator.name')");
+
 	@Documentation.Section(Documentation.Sections.ALL_TASK_MANAGER)
 	public static final ConfigOption<Boolean> DEBUG_MEMORY_LOG =
 		key("taskmanager.debug.memory.log")

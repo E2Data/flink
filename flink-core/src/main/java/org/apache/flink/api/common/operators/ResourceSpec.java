@@ -23,6 +23,7 @@ import org.apache.flink.api.common.resources.CPUResource;
 import org.apache.flink.api.common.resources.GPUResource;
 import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.api.common.ProcessingUnitType;
 
 import javax.annotation.Nullable;
 
@@ -65,6 +66,9 @@ public final class ResourceSpec implements Serializable {
 	 */
 	public static final ResourceSpec DEFAULT = UNKNOWN;
 
+	/** Which processing unit type is needed*/
+	private final ProcessingUnitType processingUnitType;
+
 	/**
 	 * A ResourceSpec that indicates zero amount of resources.
 	 */
@@ -89,24 +93,24 @@ public final class ResourceSpec implements Serializable {
 	private final Map<String, Resource> extendedResources = new HashMap<>(1);
 
 	private ResourceSpec(
+			ProcessingUnitType processingUnitType,
 			final Resource cpuCores,
 			final MemorySize taskHeapMemory,
 			final MemorySize taskOffHeapMemory,
 			final MemorySize managedMemory,
-			final Resource... extendedResources) {
+			final Map<String, Resource> extendedResources) {
 
 		checkNotNull(cpuCores);
 		checkArgument(cpuCores instanceof CPUResource, "cpuCores must be CPUResource");
 
+		this.processingUnitType = processingUnitType;
 		this.cpuCores = cpuCores;
 		this.taskHeapMemory = checkNotNull(taskHeapMemory);
 		this.taskOffHeapMemory = checkNotNull(taskOffHeapMemory);
 		this.managedMemory = checkNotNull(managedMemory);
 
-		for (Resource resource : extendedResources) {
-			if (resource != null) {
-				this.extendedResources.put(resource.getName(), resource);
-			}
+		if (extendedResources != null) {
+			this.extendedResources.putAll(extendedResources);
 		}
 	}
 
@@ -114,6 +118,7 @@ public final class ResourceSpec implements Serializable {
 	 * Creates a new ResourceSpec with all fields unknown.
 	 */
 	private ResourceSpec() {
+		this.processingUnitType = ProcessingUnitType.ANY;
 		this.cpuCores = null;
 		this.taskHeapMemory = null;
 		this.taskOffHeapMemory = null;
@@ -134,15 +139,33 @@ public final class ResourceSpec implements Serializable {
 			return UNKNOWN;
 		}
 
+		/*
+		Two ResourceSpec instances are merged when the JobGraphGenerator chains
+		individual operators into tasks. This happens before the JobGraph is
+		passed to the HAIER scheduler to assign tasks to different devices.
+		Therefore every merged task should have ProcessingUnitType.ANY at this
+		point.
+		 */
+		if (this.processingUnitType != ProcessingUnitType.ANY ||
+			other.processingUnitType != ProcessingUnitType.ANY) {
+			throw new IllegalStateException(
+				"ResourceSpec must have ProcessingUnitType.ANY to be merged.");
+		}
+
+		Map<String, Resource> resultExtendedResource = new HashMap<>(extendedResources);
+
+		for (Resource resource : other.extendedResources.values()) {
+			resultExtendedResource.merge(resource.getName(), resource, (v1, v2) -> v1.merge(v2));
+		}
+
 		ResourceSpec target = new ResourceSpec(
+			ProcessingUnitType.ANY,
 			this.cpuCores.merge(other.cpuCores),
 			this.taskHeapMemory.add(other.taskHeapMemory),
 			this.taskOffHeapMemory.add(other.taskOffHeapMemory),
-			this.managedMemory.add(other.managedMemory));
-		target.extendedResources.putAll(extendedResources);
-		for (Resource resource : other.extendedResources.values()) {
-			target.extendedResources.merge(resource.getName(), resource, (v1, v2) -> v1.merge(v2));
-		}
+			this.managedMemory.add(other.managedMemory),
+			resultExtendedResource);
+
 		return target;
 	}
 
@@ -159,23 +182,38 @@ public final class ResourceSpec implements Serializable {
 			return UNKNOWN;
 		}
 
+		/*
+		Ensure that both ResourceSpecs have the same ProcessingUnitType when subtracting.
+		 */
+		if (this.processingUnitType != other.processingUnitType) {
+			throw new IllegalStateException(
+				"ResourceSpec must have the same ProcessingUnitType to be subtracted.");
+		}
+
 		checkArgument(other.lessThanOrEqual(this), "Cannot subtract a larger ResourceSpec from this one.");
 
-		final ResourceSpec target = new ResourceSpec(
-			this.cpuCores.subtract(other.cpuCores),
-			this.taskHeapMemory.subtract(other.taskHeapMemory),
-			this.taskOffHeapMemory.subtract(other.taskOffHeapMemory),
-			this.managedMemory.subtract(other.managedMemory));
-
-		target.extendedResources.putAll(extendedResources);
+		Map<String, Resource> resultExtendedResource = new HashMap<>(extendedResources);
 
 		for (Resource resource : other.extendedResources.values()) {
-			target.extendedResources.merge(resource.getName(), resource, (v1, v2) -> {
+			resultExtendedResource.merge(resource.getName(), resource, (v1, v2) -> {
 				final Resource subtracted = v1.subtract(v2);
 				return subtracted.getValue().compareTo(BigDecimal.ZERO) == 0 ? null : subtracted;
 			});
 		}
+
+		final ResourceSpec target = new ResourceSpec(
+			this.processingUnitType,
+			this.cpuCores.subtract(other.cpuCores),
+			this.taskHeapMemory.subtract(other.taskHeapMemory),
+			this.taskOffHeapMemory.subtract(other.taskOffHeapMemory),
+			this.managedMemory.subtract(other.managedMemory),
+			resultExtendedResource);
+
 		return target;
+	}
+
+	public ProcessingUnitType getProcessingUnitType() {
+		return processingUnitType;
 	}
 
 	public Resource getCpuCores() {
@@ -252,7 +290,8 @@ public final class ResourceSpec implements Serializable {
 			return true;
 		} else if (obj != null && obj.getClass() == ResourceSpec.class) {
 			ResourceSpec that = (ResourceSpec) obj;
-			return Objects.equals(this.cpuCores, that.cpuCores) &&
+			return this.processingUnitType == that.getProcessingUnitType() &&
+				Objects.equals(this.cpuCores, that.cpuCores) &&
 				Objects.equals(this.taskHeapMemory, that.taskHeapMemory) &&
 				Objects.equals(this.taskOffHeapMemory, that.taskOffHeapMemory) &&
 				Objects.equals(this.managedMemory, that.managedMemory) &&
@@ -268,6 +307,7 @@ public final class ResourceSpec implements Serializable {
 		result = 31 * result + Objects.hashCode(taskHeapMemory);
 		result = 31 * result + Objects.hashCode(taskOffHeapMemory);
 		result = 31 * result + Objects.hashCode(managedMemory);
+		result = 31 * result + processingUnitType.hashCode();
 		result = 31 * result + extendedResources.hashCode();
 		return result;
 	}
@@ -283,7 +323,8 @@ public final class ResourceSpec implements Serializable {
 			extResources.append(", ").append(resource.getKey()).append('=').append(resource.getValue().getValue());
 		}
 		return "ResourceSpec{" +
-			"cpuCores=" + cpuCores.getValue() +
+			"processingUnitType=" + processingUnitType.toString() +
+			", cpuCores=" + cpuCores.getValue() +
 			", taskHeapMemory=" + taskHeapMemory.toHumanReadableString() +
 			", taskOffHeapMemory=" + taskOffHeapMemory.toHumanReadableString() +
 			", managedMemory=" + managedMemory.toHumanReadableString() + extResources +
@@ -312,6 +353,7 @@ public final class ResourceSpec implements Serializable {
 	 */
 	public static class Builder {
 
+		private ProcessingUnitType processingUnitType = ProcessingUnitType.ANY;
 		private Resource cpuCores;
 		private MemorySize taskHeapMemory;
 		private MemorySize taskOffHeapMemory = MemorySize.ZERO;
@@ -321,6 +363,11 @@ public final class ResourceSpec implements Serializable {
 		private Builder(CPUResource cpuCores, MemorySize taskHeapMemory) {
 			this.cpuCores = cpuCores;
 			this.taskHeapMemory = taskHeapMemory;
+		}
+
+		public Builder setProcessingUnitType(ProcessingUnitType processingUnitType) {
+			this.processingUnitType = processingUnitType;
+			return this;
 		}
 
 		public Builder setCpuCores(double cpuCores) {
@@ -364,12 +411,16 @@ public final class ResourceSpec implements Serializable {
 		}
 
 		public ResourceSpec build() {
+			Map<String, Resource> extendedResources = new HashMap<>();
+			extendedResources.put(gpuResource.getName(), gpuResource);
+
 			return new ResourceSpec(
+				processingUnitType,
 				cpuCores,
 				taskHeapMemory,
 				taskOffHeapMemory,
 				managedMemory,
-				gpuResource);
+				extendedResources);
 		}
 	}
 

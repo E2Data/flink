@@ -291,6 +291,11 @@ public class TaskManagerServices {
 			taskManagerServicesConfiguration.getTimerServiceShutdownTimeout(),
 			taskManagerServicesConfiguration.getPageSize());
 
+		// FIXME: seems that location of resourceProfiles has moved. Where to put this statement?
+		// if (taskManagerServicesConfiguration.isUseAccelerators()) {
+		//   YarnIoResources.addYarnIoResources(resourceProfiles);
+		// }
+
 		final JobTable jobTable = DefaultJobTable.create();
 
 		final JobLeaderService jobLeaderService = new DefaultJobLeaderService(unresolvedTaskManagerLocation, taskManagerServicesConfiguration.getRetryingRegistrationConfiguration());

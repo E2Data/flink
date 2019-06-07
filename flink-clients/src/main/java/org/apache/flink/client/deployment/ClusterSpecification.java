@@ -25,11 +25,13 @@ public final class ClusterSpecification {
 	private final int masterMemoryMB;
 	private final int taskManagerMemoryMB;
 	private final int slotsPerTaskManager;
+	private final boolean useAccelerators;
 
-	private ClusterSpecification(int masterMemoryMB, int taskManagerMemoryMB, int slotsPerTaskManager) {
+	private ClusterSpecification(int masterMemoryMB, int taskManagerMemoryMB, int slotsPerTaskManager, boolean useAccelerators) {
 		this.masterMemoryMB = masterMemoryMB;
 		this.taskManagerMemoryMB = taskManagerMemoryMB;
 		this.slotsPerTaskManager = slotsPerTaskManager;
+		this.useAccelerators = useAccelerators;
 	}
 
 	public int getMasterMemoryMB() {
@@ -42,6 +44,10 @@ public final class ClusterSpecification {
 
 	public int getSlotsPerTaskManager() {
 		return slotsPerTaskManager;
+	}
+
+	public boolean getUseAccelerators() {
+		return useAccelerators;
 	}
 
 	@Override
@@ -60,6 +66,7 @@ public final class ClusterSpecification {
 		private int masterMemoryMB = 768;
 		private int taskManagerMemoryMB = 1024;
 		private int slotsPerTaskManager = 1;
+		private boolean useAccelerators = false;
 
 		public ClusterSpecificationBuilder setMasterMemoryMB(int masterMemoryMB) {
 			this.masterMemoryMB = masterMemoryMB;
@@ -76,11 +83,17 @@ public final class ClusterSpecification {
 			return this;
 		}
 
+		public ClusterSpecificationBuilder setUseAccelerators(boolean useAccelerators) {
+			this.useAccelerators = useAccelerators;
+			return this;
+		}
+
 		public ClusterSpecification createClusterSpecification() {
 			return new ClusterSpecification(
 				masterMemoryMB,
 				taskManagerMemoryMB,
-				slotsPerTaskManager);
+				slotsPerTaskManager,
+				useAccelerators);
 		}
 	}
 }
