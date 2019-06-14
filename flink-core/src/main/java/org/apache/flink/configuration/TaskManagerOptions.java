@@ -174,12 +174,12 @@ public class TaskManagerOptions {
 				" (e.g., equal to the number of cores, or half the number of cores).");
 
 	public static final ConfigOption<Boolean> USE_ACCELERATORS =
-			key("taskmanager.useAccelerators")
+		key("taskmanager.useAccelerators")
 			.defaultValue(false)
 			.withDescription("Provide task slots for each accelerator installed on the node. If true, the TaskManager" +
-									 " queries YARN to determine the installed accelerators in the node. For each" +
-									 " accelerator, a task slot is created which specifies the YARN name of the" +
-									 " accelerator in its ResourceProfile (extended resource key 'accelerator.name')");
+				" queries YARN to determine the installed accelerators in the node. For each" +
+				" accelerator, a task slot is created which specifies the YARN name of the" +
+				" accelerator in its ResourceProfile (extended resource key 'accelerator.name')");
 
 	public static final ConfigOption<Boolean> DEBUG_MEMORY_LOG =
 		key("taskmanager.debug.memory.log")
