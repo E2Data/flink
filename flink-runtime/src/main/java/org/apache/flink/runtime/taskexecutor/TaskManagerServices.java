@@ -19,6 +19,10 @@
 package org.apache.flink.runtime.taskexecutor;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.common.ProcessingUnitType;
+import org.apache.flink.api.common.resources.AcceleratorResource;
+import org.apache.flink.api.common.resources.GPUResource;
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.configuration.MemorySize;
@@ -59,7 +63,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -250,7 +256,10 @@ public class TaskManagerServices {
 		}
 
 		if (taskManagerServicesConfiguration.isUseAccelerators()) {
-			
+			// TODO: Replace dummy accelerators with accelerators queried from YARN
+			Map<String, Resource> extendedResources = new HashMap<>();
+			extendedResources.put("accelerator.name", new AcceleratorResource("NvidiaGTX1080"));
+			resourceProfiles.add(new ResourceProfile(ProcessingUnitType.GPU, 2048, Integer.MAX_VALUE, 8192, Integer.MAX_VALUE, Integer.MAX_VALUE, extendedResources));
 		}
 
 		final TimerService<AllocationID> timerService = new TimerService<>(
