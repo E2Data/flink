@@ -19,6 +19,7 @@
 package org.apache.flink.yarn;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ResourceManagerOptions;
@@ -418,7 +419,7 @@ public class YarnResourceManagerTest extends TestLogger {
 				final SlotReport slotReport = new SlotReport(
 					new SlotStatus(
 						new SlotID(taskManagerResourceId, 1),
-						new ResourceProfile(10, 1, 1, 1, 0, Collections.emptyMap())));
+						new ResourceProfile(ProcessingUnitType.ANY, 10, 1, 1, 1, 0, Collections.emptyMap())));
 
 				CompletableFuture<Integer> numberRegisteredSlotsFuture = rmGateway
 					.registerTaskExecutor(
