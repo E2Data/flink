@@ -21,16 +21,26 @@ package org.apache.flink.yarn;
 import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.client.cli.CliFrontendTestBase;
+import org.apache.flink.client.cli.CliFrontendTestUtils;
 import org.apache.flink.client.deployment.ClusterDeploymentException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.client.program.PackagedProgram;
+import org.apache.flink.client.program.PackagedProgramUtils;
+import org.apache.flink.client.program.ProgramInvocationException;
+import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.AkkaOptions;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobmanager.scheduler.NoResourceAvailableException;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
+import org.apache.flink.runtime.jobmaster.JobResult;
+import org.apache.flink.yarn.util.YarnTestUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -38,9 +48,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.flink.yarn.util.YarnTestUtils.getTestJarPath;
 
 /**
  * Test cases for defining ProcessingUnitType preferences for JobGraph vertices.
@@ -78,7 +94,7 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 		final ClusterSpecification clusterSpecification = new ClusterSpecification.ClusterSpecificationBuilder()
 			.setMasterMemoryMB(768)
 			.setTaskManagerMemoryMB(1024)
-			.setSlotsPerTaskManager(2)
+			.setSlotsPerTaskManager(3)
 			.setNumberTaskManagers(2)
 			.createClusterSpecification();
 		this.clusterSpecification = clusterSpecification;
@@ -94,22 +110,29 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 	 * Execute JobGraph with distinct SlotSharingGroups and ProcessingUnitTypePreferences = ANY.
 	 */
 	@Test
-	public void testAccomplishableProcessingUnitTypePreferences01(){
-		assertTrue(true);
+	public void testAccomplishableProcessingUnitTypePreferences01() throws ProgramInvocationException, ClusterDeploymentException, ExecutionException, InterruptedException, FileNotFoundException {
+		File testingJar = getTestJarPath("BatchWordCount.jar");
+		ResourceSpec demandResource = new ResourceSpec(ProcessingUnitType.GPU, 0, 0, 0, 0, 0);
 
-		//TODO Prototype:
-        /*
-        final JobGraph jobGraph = this.env.getStreamGraph().getJobGraph();
-        File testingJar = YarnTestBase.findFile("..", new YarnTestUtils.TestJarFinder("flink-yarn-tests"));
-        jobGraph.addJar(new org.apache.flink.core.fs.Path(testingJar.toURI()));
-		jobGraph.addJar(new org.apache.flink.core.fs.Path("file:/Users/david/Documents/DFKI/E2Data/flink-1.7.2/flink-examples/flink-examples-batch/target/WordCount.jar"));
-		addProcessingUnitTypePreference(jobGraph, ProcessingUnitType.FPGA, ProcessingUnitType.ASIC);
-		diversifySlotSharingGroup(jobGraph);
-        this.clusterClient.submitJob(jobGraph, null);
-        final RestClusterClient restClusterClient = (RestClusterClient) clusterClient;
-        final CompletableFuture<JobResult> jobResultCompletableFuture = restClusterClient.requestJobResult(jobGraph.getJobID());
-        final JobResult jobResult = jobResultCompletableFuture.get();
-        */
+		Configuration configuration = GlobalConfiguration.loadConfiguration(CliFrontendTestUtils.getConfigDir());
+
+		PackagedProgram program = new PackagedProgram(testingJar, new String[]{});
+		JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, configuration, 1);
+
+		for (JobVertex vertex : jobGraph.getVertices()) {
+			vertex.setResources(demandResource, demandResource);
+		}
+
+		clusterClient = yarnClusterDescriptor.deployJobCluster(
+						clusterSpecification,
+						jobGraph,
+						false);
+		final RestClusterClient<ApplicationId> restClusterClient = (RestClusterClient<ApplicationId>) clusterClient;
+		final CompletableFuture<JobResult> jobResultCompletableFuture = restClusterClient.requestJobResult(jobGraph.getJobID());
+		jobResultCompletableFuture.wait();
+		final JobResult jobResult = jobResultCompletableFuture.get();
+
+		assertTrue(jobResult.isSuccess());
 	}
 
 	/**
