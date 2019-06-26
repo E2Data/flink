@@ -255,10 +255,7 @@ public class TaskManagerServices {
 		}
 
 		if (taskManagerServicesConfiguration.isUseAccelerators()) {
-			// TODO: Replace dummy accelerators with accelerators queried from YARN
-			Map<String, Resource> extendedResources = new HashMap<>();
-			extendedResources.put("accelerator.name", new AcceleratorResource("NvidiaGTX1080"));
-			resourceProfiles.add(new ResourceProfile(ProcessingUnitType.GPU, 2048, Integer.MAX_VALUE, Integer.MAX_VALUE, 8192, Integer.MAX_VALUE, extendedResources));
+			YarnIoResources.addYarnIoResources(resourceProfiles);
 		}
 
 		final TimerService<AllocationID> timerService = new TimerService<>(
