@@ -856,6 +856,14 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 			TaskManagerOptions.TASK_MANAGER_HEAP_MEMORY,
 			clusterSpecification.getTaskManagerMemoryMB() + "m");
 
+		configuration.setBoolean(
+			TaskManagerOptions.USE_ACCELERATORS,
+			clusterSpecification.getUseAccelerators());
+
+		flinkConfiguration.setLong(
+			JobManagerOptions.SLOT_REQUEST_TIMEOUT,
+			1000);
+
 		// Upload the flink configuration
 		// write out configuration file
 		File tmpConfigurationFile = File.createTempFile(appId + "-flink-conf.yaml", null);

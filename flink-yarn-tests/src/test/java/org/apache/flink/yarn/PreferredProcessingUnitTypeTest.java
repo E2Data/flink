@@ -20,6 +20,7 @@ package org.apache.flink.yarn;
 
 import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.operators.ResourceSpec;
+import org.apache.flink.api.common.resources.AcceleratorResource;
 import org.apache.flink.client.deployment.ClusterDeploymentException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
@@ -62,13 +63,13 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 
 	Configuration configuration;
 	YarnClusterDescriptor yarnClusterDescriptor;
-	ClusterSpecification clusterSpecification;
 	ClusterClient<ApplicationId> clusterClient;
 
 	@Before
 	public void setupYarnAndSessionCluster() {
 		Configuration configuration = new Configuration();
 		configuration.setString(AkkaOptions.ASK_TIMEOUT, "30 s");
+
 		final YarnClient yarnClient = getYarnClient();
 
 		try (final YarnClusterDescriptor yarnClusterDescriptor = new YarnClusterDescriptor(
@@ -81,16 +82,8 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 			yarnClusterDescriptor.setLocalJarPath(new Path(flinkUberjar.getAbsolutePath()));
 			yarnClusterDescriptor.addShipFiles(Arrays.asList(flinkLibFolder.listFiles()));
 
-			final ClusterSpecification clusterSpecification = new ClusterSpecification.ClusterSpecificationBuilder()
-				.setMasterMemoryMB(768)
-				.setTaskManagerMemoryMB(1024)
-				.setSlotsPerTaskManager(1)
-				.setNumberTaskManagers(1)
-				.createClusterSpecification();
-
 			this.configuration = configuration;
 			this.yarnClusterDescriptor = yarnClusterDescriptor;
-			this.clusterSpecification = clusterSpecification;
 		}
 	}
 
@@ -109,7 +102,15 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 	@Test
 	public void testAccomplishableProcessingUnitTypePreferences01() throws FileNotFoundException, ProgramInvocationException, ClusterDeploymentException, ExecutionException, InterruptedException {
 		File testingJar = getTestJarPath("BatchWordCount.jar");
-		ResourceSpec demandResource = new ResourceSpec(ProcessingUnitType.GPU, 0, 0, 0, 0, 0);
+		ResourceSpec demandResource = new ResourceSpec(ProcessingUnitType.GPU, 0, 0, 0, 0, 0, new AcceleratorResource("yarn.io/gpu-geforce1080gtx"));
+
+		ClusterSpecification clusterSpecification = new ClusterSpecification.ClusterSpecificationBuilder()
+			.setMasterMemoryMB(768)
+			.setTaskManagerMemoryMB(1024)
+			.setSlotsPerTaskManager(1)
+			.setNumberTaskManagers(1)
+			.setUseAccelerators(true)
+			.createClusterSpecification();
 
 		PackagedProgram program = new PackagedProgram(testingJar, new String[]{});
 		JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, configuration, 1);
@@ -122,7 +123,6 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 			clusterSpecification,
 			jobGraph,
 			false);
-		this.clusterClient = clusterClient;
 
 		assertThat(clusterClient, is(instanceOf(RestClusterClient.class)));
 		final RestClusterClient<ApplicationId> restClusterClient = (RestClusterClient<ApplicationId>) clusterClient;
@@ -132,6 +132,12 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 		final JobResult jobResult = jobResultCompletableFuture.get();
 
 		assertThat(jobResult, is(notNullValue()));
+
+		if (jobResult.getSerializedThrowable().isPresent()) {
+			System.err.println("Job failed with an exception:");
+			System.err.println(jobResult.getSerializedThrowable().toString());
+		}
+
 		assertThat(jobResult.getSerializedThrowable().isPresent(), is(false));
 	}
 
