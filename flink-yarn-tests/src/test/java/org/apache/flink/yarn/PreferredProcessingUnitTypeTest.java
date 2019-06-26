@@ -20,9 +20,6 @@ package org.apache.flink.yarn;
 
 import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.operators.ResourceSpec;
-import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.client.cli.CliFrontendTestBase;
-import org.apache.flink.client.cli.CliFrontendTestUtils;
 import org.apache.flink.client.deployment.ClusterDeploymentException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
@@ -33,14 +30,11 @@ import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.AkkaOptions;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.GlobalConfiguration;
-import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobmanager.scheduler.NoResourceAvailableException;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.runtime.jobmaster.JobResult;
-import org.apache.flink.yarn.util.YarnTestUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -51,12 +45,14 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.flink.yarn.util.YarnTestUtils.getTestJarPath;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Test cases for defining ProcessingUnitType preferences for JobGraph vertices.
@@ -64,57 +60,56 @@ import static org.apache.flink.yarn.util.YarnTestUtils.getTestJarPath;
  */
 public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 
-	private ExecutionEnvironment env;
-	private ClusterSpecification clusterSpecification;
-	private YarnClusterDescriptor yarnClusterDescriptor;
-	private ClusterClient<ApplicationId> clusterClient;
+	Configuration configuration;
+	YarnClusterDescriptor yarnClusterDescriptor;
+	ClusterSpecification clusterSpecification;
+	ClusterClient<ApplicationId> clusterClient;
 
 	@Before
-	public void setupYarnAndSessionCluster() throws ClusterDeploymentException {
-
-		// Setup code copied from YARNITCase
-
-		YARN_CONFIGURATION.set(YarnTestBase.TEST_CLUSTER_NAME_KEY, "e2data-tests");
-		startYARNWithConfig(YARN_CONFIGURATION);
-
+	public void setupYarnAndSessionCluster() {
 		Configuration configuration = new Configuration();
 		configuration.setString(AkkaOptions.ASK_TIMEOUT, "30 s");
 		final YarnClient yarnClient = getYarnClient();
-		final YarnClusterDescriptor yarnClusterDescriptor = new YarnClusterDescriptor(
+
+		try (final YarnClusterDescriptor yarnClusterDescriptor = new YarnClusterDescriptor(
 			configuration,
 			getYarnConfiguration(),
 			System.getenv(ConfigConstants.ENV_FLINK_CONF_DIR),
 			yarnClient,
-			true);
+			true)) {
 
-		yarnClusterDescriptor.setLocalJarPath(new Path(flinkUberjar.getAbsolutePath()));
-		yarnClusterDescriptor.addShipFiles(Arrays.asList(flinkLibFolder.listFiles()));
-		this.yarnClusterDescriptor = yarnClusterDescriptor;
+			yarnClusterDescriptor.setLocalJarPath(new Path(flinkUberjar.getAbsolutePath()));
+			yarnClusterDescriptor.addShipFiles(Arrays.asList(flinkLibFolder.listFiles()));
 
-		final ClusterSpecification clusterSpecification = new ClusterSpecification.ClusterSpecificationBuilder()
-			.setMasterMemoryMB(768)
-			.setTaskManagerMemoryMB(1024)
-			.setSlotsPerTaskManager(3)
-			.setNumberTaskManagers(2)
-			.createClusterSpecification();
-		this.clusterSpecification = clusterSpecification;
+			final ClusterSpecification clusterSpecification = new ClusterSpecification.ClusterSpecificationBuilder()
+				.setMasterMemoryMB(768)
+				.setTaskManagerMemoryMB(1024)
+				.setSlotsPerTaskManager(1)
+				.setNumberTaskManagers(1)
+				.createClusterSpecification();
 
-		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		this.env = env;
+			this.configuration = configuration;
+			this.yarnClusterDescriptor = yarnClusterDescriptor;
+			this.clusterSpecification = clusterSpecification;
+		}
+	}
 
-		ClusterClient<ApplicationId> clusterClient = yarnClusterDescriptor.deploySessionCluster(clusterSpecification);
-		this.clusterClient = clusterClient;
+	@After
+	public void shutDownYarn() throws Exception {
+		if (this.clusterClient != null) {
+			ApplicationId applicationId = this.clusterClient.getClusterId();
+			this.clusterClient.shutdown();
+			this.yarnClusterDescriptor.killCluster(applicationId);
+		}
 	}
 
 	/**
-	 * Execute JobGraph with distinct SlotSharingGroups and ProcessingUnitTypePreferences = ANY.
+	 * Execute a WordCount job with ProcessingUnitTypePreferences = GPU.
 	 */
 	@Test
-	public void testAccomplishableProcessingUnitTypePreferences01() throws ProgramInvocationException, ClusterDeploymentException, ExecutionException, InterruptedException, FileNotFoundException {
+	public void testAccomplishableProcessingUnitTypePreferences01() throws FileNotFoundException, ProgramInvocationException, ClusterDeploymentException, ExecutionException, InterruptedException {
 		File testingJar = getTestJarPath("BatchWordCount.jar");
 		ResourceSpec demandResource = new ResourceSpec(ProcessingUnitType.GPU, 0, 0, 0, 0, 0);
-
-		Configuration configuration = GlobalConfiguration.loadConfiguration(CliFrontendTestUtils.getConfigDir());
 
 		PackagedProgram program = new PackagedProgram(testingJar, new String[]{});
 		JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, configuration, 1);
@@ -124,15 +119,20 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 		}
 
 		clusterClient = yarnClusterDescriptor.deployJobCluster(
-						clusterSpecification,
-						jobGraph,
-						false);
+			clusterSpecification,
+			jobGraph,
+			false);
+		this.clusterClient = clusterClient;
+
+		assertThat(clusterClient, is(instanceOf(RestClusterClient.class)));
 		final RestClusterClient<ApplicationId> restClusterClient = (RestClusterClient<ApplicationId>) clusterClient;
+
 		final CompletableFuture<JobResult> jobResultCompletableFuture = restClusterClient.requestJobResult(jobGraph.getJobID());
-		jobResultCompletableFuture.wait();
+
 		final JobResult jobResult = jobResultCompletableFuture.get();
 
-		assertTrue(jobResult.isSuccess());
+		assertThat(jobResult, is(notNullValue()));
+		assertThat(jobResult.getSerializedThrowable().isPresent(), is(false));
 	}
 
 	/**
@@ -179,14 +179,6 @@ public class PreferredProcessingUnitTypeTest extends YarnTestBase {
 		for (JobVertex vertex : jobGraph.getVertices()) {
 			vertex.getSlotSharingGroup().removeVertexFromGroup(vertex.getID());
 			vertex.setSlotSharingGroup(new SlotSharingGroup());
-		}
-	}
-
-	@After
-	public void shutDown() throws Exception {
-		if (this.clusterClient != null) {
-			this.clusterClient.shutdown();
-			this.yarnClusterDescriptor.killCluster(this.clusterClient.getClusterId());
 		}
 	}
 }
