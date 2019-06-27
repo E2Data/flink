@@ -303,13 +303,10 @@ public class YarnResourceManager extends ResourceManager<YarnWorkerNode> impleme
 
 	@Override
 	public Collection<ResourceProfile> startNewWorker(ResourceProfile resourceProfile) {
-		// Priority for worker containers - priorities are intra-application
-		//TODO: set priority according to the resource allocated
-		Priority priority = Priority.newInstance(generatePriority(resourceProfile));
-		int mem = resourceProfile.getMemoryInMB() < 0 ? defaultTaskManagerMemoryMB : resourceProfile.getMemoryInMB();
-		int vcore = resourceProfile.getCores() < 1 ? defaultCpus : (int) resourceProfile.getCores();
-		Resource capability = Resource.newInstance(mem, vcore);
-		requestYarnContainer(capability, priority);
+		Preconditions.checkArgument(
+				ResourceProfile.UNKNOWN.equals(resourceProfile),
+				"The YarnResourceManager does not support custom ResourceProfiles yet. It assumes that all containers have the same resources.");
+		requestYarnContainer();
 
 		return slotsPerWorker;
 	}
