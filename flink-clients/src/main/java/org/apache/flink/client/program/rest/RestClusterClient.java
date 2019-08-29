@@ -100,6 +100,15 @@ import org.apache.flink.util.function.CheckedSupplier;
 import org.apache.flink.shaded.netty4.io.netty.channel.ConnectTimeoutException;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
 
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.util.EntityUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -306,7 +315,54 @@ public class RestClusterClient<T> implements ClusterClient<T> {
 			}
 		}, executorService);
 
-		CompletableFuture<Tuple2<JobSubmitRequestBody, Collection<FileUpload>>> requestFuture = jobGraphFileFuture.thenApply(jobGraphFile -> {
+		final CompletableFuture<java.nio.file.Path> haierFuture = jobGraphFileFuture.thenApply(jobGraphFile -> {
+			log.info("vvvvvvvvvvvvvvvvvvv   HAIER   vvvvvvvvvvvvvvvvvvvvvvvv\n\n\n\n\n");
+
+			final String haierURL = "http://silver1.cslab.ece.ntua.gr:8080/e2data/flink-schedule";
+			// ^^  FIXME(ckatsak): HAIER's URL should probably be statically configurable.  ^^
+			final CloseableHttpClient haierClient = HttpClients.createDefault();
+			final HttpEntity haierReqEntity = MultipartEntityBuilder
+				.create()
+				.addBinaryBody("file", jobGraphFile.toFile(), ContentType.APPLICATION_OCTET_STREAM, jobGraphFile.getFileName().toString())
+				.build();
+			final HttpPost haierReq = new HttpPost(haierURL);
+			haierReq.setEntity(haierReqEntity);
+
+			try {
+				log.info("Executing request:  " + haierReq.getRequestLine());
+				final CloseableHttpResponse haierRes = haierClient.execute(haierReq);
+				try {
+					log.info("Response:  " + haierRes.getStatusLine());
+					final HttpEntity haierResEntity = haierRes.getEntity();
+					if (haierResEntity != null) {
+						log.info("Response's Content-Length:  " + haierResEntity.getContentLength());
+					}
+					EntityUtils.consume(haierResEntity);
+				} finally {
+					haierRes.close();
+				}
+			} catch (Exception e) {
+				throw new HaierException(e, jobGraphFile);
+			}
+
+			log.info("^^^^^^^^^^^^^^^^^^^   HAIER   ^^^^^^^^^^^^^^^^^^^^^^^^\n");
+			return jobGraphFile;
+		})
+		.exceptionally(e -> {
+			log.warn("[HAIER] OOPS...: " + e.getMessage());
+			log.warn("^^^^^^^^^^^^^^^^^^^   HAIER   ^^^^^^^^^^^^^^^^^^^^^^^^\n");
+			return ((HaierException) e).getJobGraphFile();
+		});
+		/*.handle((ret, e) -> {
+			if (ret != null) {
+				return ret;
+			}
+			log.warn("[HAIER] OOPS...: " + e.getMessage());
+			log.warn("^^^^^^^^^^^^^^^^^^^   JOBGRAPH   ^^^^^^^^^^^^^^^^^^^^^^^^\n");
+			return ((HaierException) e).getJobGraphFile();
+		});*/
+
+		CompletableFuture<Tuple2<JobSubmitRequestBody, Collection<FileUpload>>> requestFuture = haierFuture.thenApply(jobGraphFile -> {
 			List<String> jarFileNames = new ArrayList<>(8);
 			List<JobSubmitRequestBody.DistributedCacheFile> artifactFileNames = new ArrayList<>(8);
 			Collection<FileUpload> filesToUpload = new ArrayList<>(8);
@@ -722,3 +778,4 @@ public class RestClusterClient<T> implements ClusterClient<T> {
 			}, executorService);
 	}
 }
+
