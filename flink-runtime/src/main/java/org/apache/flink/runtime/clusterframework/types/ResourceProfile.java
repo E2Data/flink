@@ -49,6 +49,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * <p>Resource Profiles have a total ordering, defined by comparing these fields in sequence:
  * <ol>
+ *     <li>Processing Unit Type</li>
  *     <li>Memory Size</li>
  *     <li>CPU cores</li>
  *     <li>Extended resources</li>
@@ -118,7 +119,7 @@ public class ResourceProfile implements Serializable {
 
 	// ------------------------------------------------------------------------
 
-	/** Which processing unit type is needed*/
+	/** Which processing unit type is needed. */
 	private final ProcessingUnitType processingUnitType;
 
 	/** How many cpu cores are needed. Can be null only if it is unknown. */
@@ -141,7 +142,10 @@ public class ResourceProfile implements Serializable {
 	@Nullable // can be null only for UNKNOWN
 	private final MemorySize networkMemory;
 
-	/** A extensible field for user specified resources from {@link ResourceSpec}. */
+	/**
+	 * A extensible field for user specified resources from {@link ResourceSpec}, such as an
+	 * {@link org.apache.flink.api.common.resources.AcceleratorResource}.
+	 */
 	private final Map<String, Resource> extendedResources = new HashMap<>(1);
 
 	// ------------------------------------------------------------------------

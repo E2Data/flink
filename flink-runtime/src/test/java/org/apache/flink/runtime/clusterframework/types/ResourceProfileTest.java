@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.clusterframework.types;
 
-import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.resources.CPUResource;
 import org.apache.flink.api.common.resources.GPUResource;
