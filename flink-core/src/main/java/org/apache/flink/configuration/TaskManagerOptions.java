@@ -216,6 +216,7 @@ public class TaskManagerOptions {
 	@Documentation.Section(Documentation.Sections.ALL_TASK_MANAGER)
 	public static final ConfigOption<Boolean> USE_ACCELERATORS =
 		key("taskmanager.useAccelerators")
+			.booleanType()
 			.defaultValue(false)
 			.withDescription("Provide task slots for each accelerator installed on the node. If true, the TaskManager" +
 				" queries YARN to determine the installed accelerators in the node. For each" +
