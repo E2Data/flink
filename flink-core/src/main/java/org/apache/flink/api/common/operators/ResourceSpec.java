@@ -412,7 +412,10 @@ public final class ResourceSpec implements Serializable {
 
 		public ResourceSpec build() {
 			Map<String, Resource> extendedResources = new HashMap<>();
-			extendedResources.put(gpuResource.getName(), gpuResource);
+
+			if (gpuResource != null) {
+				extendedResources.put(gpuResource.getName(), gpuResource);
+			}
 
 			return new ResourceSpec(
 				processingUnitType,
