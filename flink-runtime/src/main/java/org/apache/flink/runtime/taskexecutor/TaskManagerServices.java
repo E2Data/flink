@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.taskexecutor;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.blob.PermanentBlobService;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
@@ -48,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -288,13 +290,9 @@ public class TaskManagerServices {
 		final TaskSlotTable<Task> taskSlotTable = createTaskSlotTable(
 			taskManagerServicesConfiguration.getNumberOfSlots(),
 			taskManagerServicesConfiguration.getTaskExecutorResourceSpec(),
+			taskManagerServicesConfiguration.getAcceleratorResources(),
 			taskManagerServicesConfiguration.getTimerServiceShutdownTimeout(),
 			taskManagerServicesConfiguration.getPageSize());
-
-		// FIXME: seems that location of resourceProfiles has moved. Where to put this statement?
-		// if (taskManagerServicesConfiguration.isUseAccelerators()) {
-		//   YarnIoResources.addYarnIoResources(resourceProfiles);
-		// }
 
 		final JobTable jobTable = DefaultJobTable.create();
 
@@ -340,6 +338,7 @@ public class TaskManagerServices {
 	private static TaskSlotTable<Task> createTaskSlotTable(
 			final int numberOfSlots,
 			final TaskExecutorResourceSpec taskExecutorResourceSpec,
+			Map<String, Resource> acceleratorResources,
 			final long timerServiceShutdownTimeout,
 			final int pageSize) {
 		final TimerService<AllocationID> timerService = new TimerService<>(
@@ -347,8 +346,9 @@ public class TaskManagerServices {
 			timerServiceShutdownTimeout);
 		return new TaskSlotTableImpl<>(
 			numberOfSlots,
-			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec),
-			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberOfSlots),
+			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec, acceleratorResources),
+			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberOfSlots, acceleratorResources),
+			acceleratorResources,
 			pageSize,
 			timerService);
 	}

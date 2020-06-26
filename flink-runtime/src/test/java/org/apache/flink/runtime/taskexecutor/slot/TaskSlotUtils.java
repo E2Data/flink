@@ -25,6 +25,8 @@ import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.runtime.memory.MemoryManager;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
 
+import java.util.Collections;
+
 /** Testing utility and factory methods for {@link TaskSlotTable} and {@link TaskSlot}s. */
 public enum TaskSlotUtils {
 	;
@@ -58,6 +60,7 @@ public enum TaskSlotUtils {
 			numberOfSlots,
 			createTotalResourceProfile(numberOfSlots),
 			DEFAULT_RESOURCE_PROFILE,
+			Collections.emptyMap(),
 			MemoryManager.MIN_PAGE_SIZE,
 			timerService);
 	}

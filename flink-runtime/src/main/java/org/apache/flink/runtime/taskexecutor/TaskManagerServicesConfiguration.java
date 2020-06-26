@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.taskexecutor;
 
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
@@ -36,6 +37,8 @@ import org.apache.flink.util.NetUtils;
 import javax.annotation.Nullable;
 
 import java.net.InetAddress;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -65,8 +68,6 @@ public class TaskManagerServicesConfiguration {
 
 	private final int numberOfSlots;
 
-	private final boolean useAccelerators;
-
 	@Nullable
 	private final QueryableStateConfiguration queryableStateConfig;
 
@@ -81,6 +82,8 @@ public class TaskManagerServicesConfiguration {
 	private Optional<Time> systemResourceMetricsProbingInterval;
 
 	private final TaskExecutorResourceSpec taskExecutorResourceSpec;
+
+	private final Map<String, Resource> acceleratorResources;
 
 	private final FlinkUserCodeClassLoaders.ResolveOrder classLoaderResolveOrder;
 
@@ -98,9 +101,9 @@ public class TaskManagerServicesConfiguration {
 			boolean localRecoveryEnabled,
 			@Nullable QueryableStateConfiguration queryableStateConfig,
 			int numberOfSlots,
-			boolean useAccelerators,
 			int pageSize,
 			TaskExecutorResourceSpec taskExecutorResourceSpec,
+			Map<String, Resource> acceleratorResources,
 			long timerServiceShutdownTimeout,
 			RetryingRegistrationConfiguration retryingRegistrationConfiguration,
 			Optional<Time> systemResourceMetricsProbingInterval,
@@ -118,7 +121,7 @@ public class TaskManagerServicesConfiguration {
 		this.localRecoveryEnabled = checkNotNull(localRecoveryEnabled);
 		this.queryableStateConfig = queryableStateConfig;
 		this.numberOfSlots = checkNotNull(numberOfSlots);
-		this.useAccelerators = checkNotNull(useAccelerators);
+		this.acceleratorResources = checkNotNull(acceleratorResources);
 
 		this.pageSize = pageSize;
 
@@ -183,10 +186,6 @@ public class TaskManagerServicesConfiguration {
 		return numberOfSlots;
 	}
 
-	public boolean isUseAccelerators() {
-		return useAccelerators;
-	}
-
 	public int getPageSize() {
 		return pageSize;
 	}
@@ -194,6 +193,10 @@ public class TaskManagerServicesConfiguration {
 	public TaskExecutorResourceSpec getTaskExecutorResourceSpec() {
 		return taskExecutorResourceSpec;
 	}
+
+	public Map<String, Resource> getAcceleratorResources() {
+	    return acceleratorResources;
+    }
 
 	public MemorySize getNetworkMemorySize() {
 		return taskExecutorResourceSpec.getNetworkMemSize();
@@ -255,6 +258,7 @@ public class TaskManagerServicesConfiguration {
 		boolean localRecoveryMode = configuration.getBoolean(CheckpointingOptions.LOCAL_RECOVERY);
 
 		boolean useAccelerators = configuration.getBoolean(TaskManagerOptions.USE_ACCELERATORS);
+		final Map<String, Resource> acceleratorResources = useAccelerators ? AcceleratorResources.getAcceleratorResources() : Collections.emptyMap();
 
 		final QueryableStateConfiguration queryableStateConfig = QueryableStateConfiguration.fromConfiguration(configuration);
 
@@ -273,24 +277,24 @@ public class TaskManagerServicesConfiguration {
 		final String[] alwaysParentFirstLoaderPatterns = CoreOptions.getParentFirstLoaderPatterns(configuration);
 
 		return new TaskManagerServicesConfiguration(
-			configuration,
-			resourceID,
-			externalAddress,
-			bindAddress,
-			externalDataPort,
-			localCommunicationOnly,
-			tmpDirs,
-			localStateRootDir,
-			localRecoveryMode,
-			queryableStateConfig,
-			ConfigurationParserUtils.getSlot(configuration),
-			useAccelerators,
-			ConfigurationParserUtils.getPageSize(configuration),
-			taskExecutorResourceSpec,
-			timerServiceShutdownTimeout,
-			retryingRegistrationConfiguration,
-			ConfigurationUtils.getSystemResourceMetricsProbingInterval(configuration),
-			FlinkUserCodeClassLoaders.ResolveOrder.fromString(classLoaderResolveOrder),
-			alwaysParentFirstLoaderPatterns);
+				configuration,
+				resourceID,
+				externalAddress,
+				bindAddress,
+				externalDataPort,
+				localCommunicationOnly,
+				tmpDirs,
+				localStateRootDir,
+				localRecoveryMode,
+				queryableStateConfig,
+				ConfigurationParserUtils.getSlot(configuration),
+				ConfigurationParserUtils.getPageSize(configuration),
+				taskExecutorResourceSpec,
+				acceleratorResources,
+				timerServiceShutdownTimeout,
+				retryingRegistrationConfiguration,
+				ConfigurationUtils.getSystemResourceMetricsProbingInterval(configuration),
+				FlinkUserCodeClassLoaders.ResolveOrder.fromString(classLoaderResolveOrder),
+				alwaysParentFirstLoaderPatterns);
 	}
 }

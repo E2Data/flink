@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.taskexecutor;
 
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.AkkaOptions;
 import org.apache.flink.configuration.ConfigConstants;
@@ -38,6 +39,8 @@ import javax.annotation.Nullable;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * Configuration object for {@link TaskExecutor}.
@@ -226,10 +229,14 @@ public class TaskManagerConfiguration implements TaskManagerRuntimeInfo {
 
 		final RetryingRegistrationConfiguration retryingRegistrationConfiguration = RetryingRegistrationConfiguration.fromConfiguration(configuration);
 
+		boolean useAccelerators = configuration.getBoolean(TaskManagerOptions.USE_ACCELERATORS);
+		// FIXME: second call to REST API, cannot we cache this?
+		final Map<String, Resource> acceleratorResources = useAccelerators ? AcceleratorResources.getAcceleratorResources() : Collections.emptyMap();
+
 		return new TaskManagerConfiguration(
 			numberSlots,
-			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberSlots),
-			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec),
+			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberSlots, acceleratorResources),
+			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec, acceleratorResources),
 			tmpDirPaths,
 			timeout,
 			finiteRegistrationDuration,

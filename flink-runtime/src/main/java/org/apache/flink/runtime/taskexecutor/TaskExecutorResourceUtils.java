@@ -20,6 +20,7 @@ package org.apache.flink.runtime.taskexecutor;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.resources.CPUResource;
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
@@ -28,11 +29,13 @@ import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 
+import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility class for {@link TaskExecutorResourceSpec} of running {@link TaskExecutor}.
@@ -103,24 +106,29 @@ public class TaskExecutorResourceUtils {
 
 	static ResourceProfile generateDefaultSlotResourceProfile(
 			TaskExecutorResourceSpec taskExecutorResourceSpec,
-			int numberOfSlots) {
+			int numberOfSlots, Map<String, Resource> acceleratorResources) {
+		Preconditions.checkNotNull(acceleratorResources);
 		return ResourceProfile.newBuilder()
 			.setCpuCores(taskExecutorResourceSpec.getCpuCores().divide(numberOfSlots))
 			.setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize().divide(numberOfSlots))
 			.setTaskOffHeapMemory(taskExecutorResourceSpec.getTaskOffHeapSize().divide(numberOfSlots))
 			.setManagedMemory(taskExecutorResourceSpec.getManagedMemorySize().divide(numberOfSlots))
 			.setNetworkMemory(taskExecutorResourceSpec.getNetworkMemSize().divide(numberOfSlots))
+			.addExtendedResources(acceleratorResources)
 			.build();
 	}
 
 	static ResourceProfile generateTotalAvailableResourceProfile(
-			TaskExecutorResourceSpec taskExecutorResourceSpec) {
+			TaskExecutorResourceSpec taskExecutorResourceSpec,
+			Map<String, Resource> acceleratorResources) {
+		Preconditions.checkNotNull(acceleratorResources);
 		return ResourceProfile.newBuilder()
 			.setCpuCores(taskExecutorResourceSpec.getCpuCores())
 			.setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize())
 			.setTaskOffHeapMemory(taskExecutorResourceSpec.getTaskOffHeapSize())
 			.setManagedMemory(taskExecutorResourceSpec.getManagedMemorySize())
 			.setNetworkMemory(taskExecutorResourceSpec.getNetworkMemSize())
+  		    .addExtendedResources(acceleratorResources)
 			.build();
 	}
 

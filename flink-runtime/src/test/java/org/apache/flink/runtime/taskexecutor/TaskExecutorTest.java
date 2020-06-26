@@ -1371,7 +1371,7 @@ public class TaskExecutorTest extends TestLogger {
 			resourceManagerLeaderRetriever.notifyListener(testingResourceManagerGateway.getAddress(), testingResourceManagerGateway.getFencingToken().toUUID());
 
 			assertThat(registeredDefaultSlotResourceProfileFuture.get(),
-				equalTo(TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(TM_RESOURCE_SPEC, numberOfSlots)));
+				equalTo(TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(TM_RESOURCE_SPEC, numberOfSlots, Collections.emptyMap())));
 		} finally {
 			RpcUtils.terminateRpcEndpoint(taskExecutor, timeout);
 		}
@@ -2054,7 +2054,7 @@ public class TaskExecutorTest extends TestLogger {
 		private final OneShotLatch allocateSlotLatch;
 
 		private AllocateSlotNotifyingTaskSlotTable(OneShotLatch allocateSlotLatch) {
-			super(1, createTotalResourceProfile(1), DEFAULT_RESOURCE_PROFILE, MemoryManager.MIN_PAGE_SIZE, createDefaultTimerService(timeout.toMilliseconds()));
+			super(1, createTotalResourceProfile(1), DEFAULT_RESOURCE_PROFILE, Collections.emptyMap(), MemoryManager.MIN_PAGE_SIZE, createDefaultTimerService(timeout.toMilliseconds()));
 			this.allocateSlotLatch = allocateSlotLatch;
 		}
 
@@ -2080,7 +2080,7 @@ public class TaskExecutorTest extends TestLogger {
 		private final CountDownLatch slotsToActivate;
 
 		private ActivateSlotNotifyingTaskSlotTable(int numberOfDefaultSlots, CountDownLatch slotsToActivate) {
-			super(numberOfDefaultSlots, createTotalResourceProfile(numberOfDefaultSlots), DEFAULT_RESOURCE_PROFILE, MemoryManager.MIN_PAGE_SIZE, createDefaultTimerService(timeout.toMilliseconds()));
+			super(numberOfDefaultSlots, createTotalResourceProfile(numberOfDefaultSlots), DEFAULT_RESOURCE_PROFILE, Collections.emptyMap(), MemoryManager.MIN_PAGE_SIZE, createDefaultTimerService(timeout.toMilliseconds()));
 			this.slotsToActivate = slotsToActivate;
 		}
 

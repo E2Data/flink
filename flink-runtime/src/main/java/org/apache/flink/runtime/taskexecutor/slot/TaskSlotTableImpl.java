@@ -21,6 +21,7 @@ package org.apache.flink.runtime.taskexecutor.slot;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceBudgetManager;
@@ -111,9 +112,11 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 			final int numberSlots,
 			final ResourceProfile totalAvailableResourceProfile,
 			final ResourceProfile defaultSlotResourceProfile,
+			Map<String, Resource> acceleratorResources,
 			final int memoryPageSize,
 			final TimerService<AllocationID> timerService) {
 		Preconditions.checkArgument(0 < numberSlots, "The number of task slots must be greater than 0.");
+		Preconditions.checkArgument(numberSlots >= acceleratorResources.size(), "The number of task slots must be at least the number of YARN IO accelerators.");
 
 		this.numberSlots = numberSlots;
 		this.defaultSlotResourceProfile = Preconditions.checkNotNull(defaultSlotResourceProfile);
