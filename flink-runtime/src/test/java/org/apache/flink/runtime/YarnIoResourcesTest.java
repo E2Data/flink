@@ -19,15 +19,12 @@
 package org.apache.flink.runtime;
 
 import org.apache.flink.runtime.rest.util.RestMapperUtils;
+import org.apache.flink.runtime.taskexecutor.YarnNodeStatus;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParser;
-
-import org.apache.flink.runtime.taskexecutor.YarnIoResources;
-import org.apache.flink.runtime.taskexecutor.YarnNodeStatus;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JavaType;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JavaType;
 
 import org.junit.Test;
 
@@ -37,7 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 
 /**
- * Tests if {@link YarnIoResources} can correctly parse the JSON response returned by YARN.
+ * Tests if {@link YarnNodeStatus.YarnNodeStatusNodeInfo} can correctly parse the JSON response returned by YARN.
  */
 public class YarnIoResourcesTest {
 
