@@ -359,6 +359,7 @@ public final class ResourceSpec implements Serializable {
 		private MemorySize taskOffHeapMemory = MemorySize.ZERO;
 		private MemorySize managedMemory = MemorySize.ZERO;
 		private GPUResource gpuResource;
+		Map<String, Resource> extendedResources = new HashMap<>();
 
 		private Builder(CPUResource cpuCores, MemorySize taskHeapMemory) {
 			this.cpuCores = cpuCores;
@@ -410,9 +411,12 @@ public final class ResourceSpec implements Serializable {
 			return this;
 		}
 
-		public ResourceSpec build() {
-			Map<String, Resource> extendedResources = new HashMap<>();
+		public Builder addExtendedResource(String name, Resource resource) {
+			extendedResources.put(name, resource);
+			return this;
+		}
 
+		public ResourceSpec build() {
 			if (gpuResource != null) {
 				extendedResources.put(gpuResource.getName(), gpuResource);
 			}
