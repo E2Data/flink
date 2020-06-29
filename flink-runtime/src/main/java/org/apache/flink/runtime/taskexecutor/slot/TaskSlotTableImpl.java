@@ -288,8 +288,14 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 			return true;
 		}
 
-		if (index >= 0 && resourceProfile == ResourceProfile.UNKNOWN) {
+		if (index >= 0) {
+			if (resourceProfile != ResourceProfile.UNKNOWN) {
+				Map<String, Resource> acceleratorResources = resourceProfile.getExtendedResources();
+				ResourceProfile acceleratedProfile = ResourceProfile.newBuilder().addExtendedResources(acceleratorResources).build();
+				resourceProfile = defaultSlotResourceProfile.merge(acceleratedProfile);
+			} else {
 				resourceProfile = defaultSlotResourceProfile;
+			}
 		}
 
 		if (!budgetManager.reserve(resourceProfile)) {
