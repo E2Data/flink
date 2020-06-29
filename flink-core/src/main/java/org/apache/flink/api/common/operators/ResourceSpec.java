@@ -43,6 +43,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * <p>Resource provides {@link #lessThanOrEqual(ResourceSpec)} method to compare these fields in sequence:
  * <ol>
+ *     <li>Processing Unit Type</li>
  *     <li>CPU cores</li>
  *     <li>Task Heap Memory</li>
  *     <li>Task Off-Heap Memory</li>
@@ -66,7 +67,12 @@ public final class ResourceSpec implements Serializable {
 	 */
 	public static final ResourceSpec DEFAULT = UNKNOWN;
 
-	/** Which processing unit type is needed*/
+	/**
+	 * Which processing unit type is needed.
+	 *
+	 * Usually, this field is either ANY to match whatever resources happen to be available. Accelerators should
+	 * normally be specified in extendedResources, because YARN specifies them as such.
+	 */
 	private final ProcessingUnitType processingUnitType;
 
 	/**
@@ -90,6 +96,11 @@ public final class ResourceSpec implements Serializable {
 	@Nullable // can be null only for UNKNOWN
 	private final MemorySize managedMemory;
 
+	/**
+	 * Additional resources not specified in other fields.
+	 *
+	 * This can include, e.g., an {@link org.apache.flink.api.common.resources.AcceleratorResource}.
+	 */
 	private final Map<String, Resource> extendedResources = new HashMap<>(1);
 
 	private ResourceSpec(
@@ -129,6 +140,14 @@ public final class ResourceSpec implements Serializable {
 	 * Used by system internally to merge the other resources of chained operators
 	 * when generating the job graph.
 	 *
+	 * <p>
+	 *     Two ResourceSpec instances are merged when the JobGraphGenerator chains
+	 * 		individual operators into tasks. This happens before the JobGraph is
+	 * 		passed to the HAIER scheduler to assign tasks to different devices.
+	 * 		Therefore every merged task should have ProcessingUnitType.ANY at this
+	 * 		point.
+	 * </p>
+	 *
 	 * @param other Reference to resource to merge in.
 	 * @return The new resource with merged values.
 	 */
@@ -139,13 +158,6 @@ public final class ResourceSpec implements Serializable {
 			return UNKNOWN;
 		}
 
-		/*
-		Two ResourceSpec instances are merged when the JobGraphGenerator chains
-		individual operators into tasks. This happens before the JobGraph is
-		passed to the HAIER scheduler to assign tasks to different devices.
-		Therefore every merged task should have ProcessingUnitType.ANY at this
-		point.
-		 */
 		if (this.processingUnitType != ProcessingUnitType.ANY ||
 			other.processingUnitType != ProcessingUnitType.ANY) {
 			throw new IllegalStateException(
@@ -172,6 +184,11 @@ public final class ResourceSpec implements Serializable {
 	/**
 	 * Subtracts another resource spec from this one.
 	 *
+	 * <p>
+	 *     This method ensures that both ResourceSpecs have the same ProcessingUnitType when subtracting, and throws an
+	 *     IllegalStateException otherwise.
+	 * </p>
+	 *
 	 * @param other The other resource spec to subtract.
 	 * @return The subtracted resource spec.
 	 */
@@ -182,9 +199,6 @@ public final class ResourceSpec implements Serializable {
 			return UNKNOWN;
 		}
 
-		/*
-		Ensure that both ResourceSpecs have the same ProcessingUnitType when subtracting.
-		 */
 		if (this.processingUnitType != other.processingUnitType) {
 			throw new IllegalStateException(
 				"ResourceSpec must have the same ProcessingUnitType to be subtracted.");
@@ -212,6 +226,11 @@ public final class ResourceSpec implements Serializable {
 		return target;
 	}
 
+	/**
+	 * Gets the {@link ProcessingUnitType}
+	 *
+	 * @return A processing unit type.
+	 */
 	public ProcessingUnitType getProcessingUnitType() {
 		return processingUnitType;
 	}
