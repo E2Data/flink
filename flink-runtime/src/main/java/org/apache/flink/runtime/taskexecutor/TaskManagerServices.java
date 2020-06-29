@@ -347,7 +347,7 @@ public class TaskManagerServices {
 		return new TaskSlotTableImpl<>(
 			numberOfSlots,
 			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec, acceleratorResources),
-			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberOfSlots, acceleratorResources),
+			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberOfSlots),
 			acceleratorResources,
 			pageSize,
 			timerService);

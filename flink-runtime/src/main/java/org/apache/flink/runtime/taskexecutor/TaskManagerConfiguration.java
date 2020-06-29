@@ -235,7 +235,7 @@ public class TaskManagerConfiguration implements TaskManagerRuntimeInfo {
 
 		return new TaskManagerConfiguration(
 			numberSlots,
-			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberSlots, acceleratorResources),
+			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberSlots),
 			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec, acceleratorResources),
 			tmpDirPaths,
 			timeout,

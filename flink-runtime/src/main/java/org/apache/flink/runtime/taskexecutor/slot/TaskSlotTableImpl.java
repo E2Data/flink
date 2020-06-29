@@ -73,6 +73,9 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	/** Slot resource profile for static slot allocation. */
 	private final ResourceProfile defaultSlotResourceProfile;
 
+	/** Available accelerators */
+	private final Map<String, Resource> acceleratorResources;
+
 	/** Page size for memory manager. */
 	private final int memoryPageSize;
 
@@ -120,6 +123,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
 		this.numberSlots = numberSlots;
 		this.defaultSlotResourceProfile = Preconditions.checkNotNull(defaultSlotResourceProfile);
+		this.acceleratorResources = acceleratorResources;
 		this.memoryPageSize = memoryPageSize;
 
 		this.taskSlots = new HashMap<>(numberSlots);
@@ -202,6 +206,9 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	public SlotReport createSlotReport(ResourceID resourceId) {
 		List<SlotStatus> slotStatuses = new ArrayList<>();
 
+		ResourceProfile acceleratorResourceProfile = ResourceProfile.newBuilder().addExtendedResources(acceleratorResources).build();
+		ResourceProfile defaultAcceleratedResourceProfile = defaultSlotResourceProfile.merge(acceleratorResourceProfile);
+
 		for (int i = 0; i < numberSlots; i++) {
 			SlotID slotId = new SlotID(resourceId, i);
 			SlotStatus slotStatus;
@@ -216,7 +223,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 			} else {
 				slotStatus = new SlotStatus(
 					slotId,
-					defaultSlotResourceProfile,
+					defaultAcceleratedResourceProfile,
 					null,
 					null);
 			}
@@ -281,7 +288,9 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 			return true;
 		}
 
-		resourceProfile = index >= 0 ? defaultSlotResourceProfile : resourceProfile;
+		if (index >= 0 && resourceProfile == ResourceProfile.UNKNOWN) {
+				resourceProfile = defaultSlotResourceProfile;
+		}
 
 		if (!budgetManager.reserve(resourceProfile)) {
 			LOG.info("Cannot allocate the requested resources. Trying to allocate {}, "

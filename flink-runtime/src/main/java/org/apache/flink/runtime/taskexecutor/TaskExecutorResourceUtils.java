@@ -106,15 +106,13 @@ public class TaskExecutorResourceUtils {
 
 	static ResourceProfile generateDefaultSlotResourceProfile(
 			TaskExecutorResourceSpec taskExecutorResourceSpec,
-			int numberOfSlots, Map<String, Resource> acceleratorResources) {
-		Preconditions.checkNotNull(acceleratorResources);
+			int numberOfSlots) {
 		return ResourceProfile.newBuilder()
 			.setCpuCores(taskExecutorResourceSpec.getCpuCores().divide(numberOfSlots))
 			.setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize().divide(numberOfSlots))
 			.setTaskOffHeapMemory(taskExecutorResourceSpec.getTaskOffHeapSize().divide(numberOfSlots))
 			.setManagedMemory(taskExecutorResourceSpec.getManagedMemorySize().divide(numberOfSlots))
 			.setNetworkMemory(taskExecutorResourceSpec.getNetworkMemSize().divide(numberOfSlots))
-			.addExtendedResources(acceleratorResources)
 			.build();
 	}
 
