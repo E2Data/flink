@@ -1,5 +1,7 @@
 package org.apache.flink.api.common.resources;
 
+import org.apache.flink.util.Preconditions;
+
 import java.math.BigDecimal;
 
 /**
@@ -10,16 +12,21 @@ public class AcceleratorResource extends Resource {
 	private static final long serialVersionUID = -5669448809999384676L;
 
 	public AcceleratorResource(String name) {
-		super(name, 1);
+		this(name, new BigDecimal(1.0));
+	}
+
+	public AcceleratorResource(String name, BigDecimal value) {
+		super(name, value);
 	}
 
 	@Override
 	public Resource merge(Resource other) {
-		throw new RuntimeException("Cannot merge AcceleratorResource types.");
+		Preconditions.checkArgument(this.getName().equals(other.getName()), "Can only merge accelerator resources with same name");
+		return new AcceleratorResource(this.getName(), this.getValue().add(other.getValue()));
 	}
 
 	@Override
 	protected Resource create(BigDecimal value) {
-		return null;
+		return new AcceleratorResource(this.getName(), value);
 	}
 }
