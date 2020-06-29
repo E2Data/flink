@@ -27,7 +27,9 @@ import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.api.common.distributions.DataDistribution;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.OutputFormat;
+import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.operators.util.UserCodeWrapper;
+import org.apache.flink.api.common.resources.AcceleratorResource;
 import org.apache.flink.api.common.typeutils.TypeSerializerFactory;
 import org.apache.flink.api.java.io.BlockingShuffleOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -408,6 +410,18 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 			vertex.setParallelism(pd);
 			vertex.setMaxParallelism(pd);
 			
+			/*
+			// fix resources for testing
+			if (vertex.getInvokableClassName().equals("org.apache.flink.runtime.operators.BatchTask")) {
+				ResourceSpec minResources = ResourceSpec.newBuilder(0, 0).addExtendedResource(
+						"yarn.io/gpu-geforce1080gtx", new AcceleratorResource("yarn.io/gpu-geforce1080gtx")).build();
+				vertex.setResources(minResources, minResources);
+			} else {
+				ResourceSpec minResources = ResourceSpec.newBuilder(0, 0).build();
+				vertex.setResources(minResources, minResources);
+			}
+		 	*/
+
 			vertex.setSlotSharingGroup(sharingGroup);
 			
 			// check whether this vertex is part of an iteration step function
