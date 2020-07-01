@@ -18,6 +18,7 @@
 
 package org.apache.flink.client.program.rest;
 
+import org.apache.flink.client.haier.HaierOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.runtime.rest.RestClientConfiguration;
@@ -39,11 +40,14 @@ public final class RestClusterClientConfiguration {
 
 	private final long retryDelay;
 
+	private final boolean enrichJobGraph;
+
 	private RestClusterClientConfiguration(
 			final RestClientConfiguration endpointConfiguration,
 			final long awaitLeaderTimeout,
 			final int retryMaxAttempts,
-			final long retryDelay) {
+			final long retryDelay,
+			final boolean enrichJobGraph) {
 		checkArgument(awaitLeaderTimeout >= 0, "awaitLeaderTimeout must be equal to or greater than 0");
 		checkArgument(retryMaxAttempts >= 0, "retryMaxAttempts must be equal to or greater than 0");
 		checkArgument(retryDelay >= 0, "retryDelay must be equal to or greater than 0");
@@ -52,6 +56,7 @@ public final class RestClusterClientConfiguration {
 		this.awaitLeaderTimeout = awaitLeaderTimeout;
 		this.retryMaxAttempts = retryMaxAttempts;
 		this.retryDelay = retryDelay;
+		this.enrichJobGraph = enrichJobGraph;
 	}
 
 	public RestClientConfiguration getRestClientConfiguration() {
@@ -79,13 +84,21 @@ public final class RestClusterClientConfiguration {
 		return retryDelay;
 	}
 
+	/**
+	 * @see HaierOptions#ENRICH_JOB_GRAPH
+	 */
+	public boolean isEnrichJobGraph() {
+		return enrichJobGraph;
+	}
+
 	public static RestClusterClientConfiguration fromConfiguration(Configuration config) throws ConfigurationException {
 		RestClientConfiguration restClientConfiguration = RestClientConfiguration.fromConfiguration(config);
 
 		final long awaitLeaderTimeout = config.getLong(RestOptions.AWAIT_LEADER_TIMEOUT);
 		final int retryMaxAttempts = config.getInteger(RestOptions.RETRY_MAX_ATTEMPTS);
 		final long retryDelay = config.getLong(RestOptions.RETRY_DELAY);
+		final boolean enrichJobGraph = config.getBoolean(HaierOptions.ENRICH_JOB_GRAPH);
 
-		return new RestClusterClientConfiguration(restClientConfiguration, awaitLeaderTimeout, retryMaxAttempts, retryDelay);
+		return new RestClusterClientConfiguration(restClientConfiguration, awaitLeaderTimeout, retryMaxAttempts, retryDelay, enrichJobGraph);
 	}
 }
