@@ -25,6 +25,10 @@ const routes: Routes = [
   { path: 'job-manager', loadChildren: './pages/job-manager/job-manager.module#JobManagerModule' },
   { path: 'task-manager', loadChildren: './pages/task-manager/task-manager.module#TaskManagerModule' },
   { path: 'job', loadChildren: './pages/job/job.module#JobModule' },
+  {
+    path: 'haier-manager',
+    loadChildren: './pages/haier-configuration/haier-configuration.module#HaierConfigurationModule'
+  },
   { path: '**', redirectTo: 'overview', pathMatch: 'full' }
 ];
 
