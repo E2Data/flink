@@ -1,28 +1,22 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewChild, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
 import { HaierService } from 'services';
-import { MonacoEditorComponent } from 'share/common/monaco-editor/monaco-editor.component';
 
 const PARAMS_UPDATED_STATUS = 204;
 const PARAMS_MALFORMED_INPUT = 400;
 const GENERIC_FAILURE = 500;
 
 @Component({
-  selector: 'haier-configuration',
-  templateUrl: './haier-configuration.component.html',
-  styleUrls: ['./haier-configuration.component.less'],
+  selector: 'haier-manager-configuration',
+  templateUrl: './haier-manager-configuration.component.html',
+  styleUrls: ['./haier-manager-configuration.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class HaierConfigurationComponent implements OnInit, OnDestroy {
+export class HaierManagerConfigurationComponent implements OnInit, OnDestroy {
   destroy$ = new Subject();
   isLoadingParams = false;
-  isLoadingLogs = false;
-
   editId: string | null = null;
   ngsaParams = [{ name: 'maxParetoPlans', value: -1 }, { name: 'numGenerations', value: -1 }];
-
-  logs = '';
-  @ViewChild(MonacoEditorComponent) monacoEditorComponent: MonacoEditorComponent;
 
   startEdit(id: string): void {
     this.editId = id;
@@ -83,27 +77,11 @@ export class HaierConfigurationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private reloadLogs() {
-    this.isLoadingLogs = true;
-    this.haierService.loadLogs().subscribe(data => {
-      console.log(data);
-      this.logs = data.join('\n');
-      this.isLoadingLogs = false;
-      this.layoutEditor();
-      this.cdr.markForCheck();
-    });
-  }
-
-  layoutEditor(): void {
-    setTimeout(() => this.monacoEditorComponent.layout());
-  }
-
   constructor(private haierService: HaierService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.getParams();
     this.getJobPlan('1');
-    this.reloadLogs();
   }
 
   ngOnDestroy() {

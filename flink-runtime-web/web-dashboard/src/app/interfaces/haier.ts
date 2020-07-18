@@ -1,6 +1,6 @@
 export interface HaierParamsInterface {
-  maxParetoPlans: number;
-  numGenerations: number;
+  max_pareto_plans: number;
+  num_generations: number;
 }
 
 export interface HaierJobPlanInterface {
@@ -14,5 +14,5 @@ export interface HaierJobPlanArrayInterface {
 }
 
 export interface HaierLogsInterface {
-  logs: string;
+  logs: string[];
 }

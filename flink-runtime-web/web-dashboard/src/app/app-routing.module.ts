@@ -27,7 +27,7 @@ const routes: Routes = [
   { path: 'job', loadChildren: './pages/job/job.module#JobModule' },
   {
     path: 'haier-manager',
-    loadChildren: './pages/haier-configuration/haier-configuration.module#HaierConfigurationModule'
+    loadChildren: './pages/haier-manager/haier-manager.module#HaierManagerModule'
   },
   { path: '**', redirectTo: 'overview', pathMatch: 'full' }
 ];

@@ -103,6 +103,7 @@
     </nz-table> -->
   </ng-container>
 </nz-card>
+<nz-divider></nz-divider>
 <nz-card [nzBordered]="false" [nzTitle]="'NSGA2 Parameters'" [nzLoading]="isLoadingParams">
   <ng-container>
     <nz-table
@@ -132,11 +133,6 @@
     </nz-table>
   </ng-container>
 </nz-card>
-
-<nz-card [nzTitle]="'Logs'">
-  <flink-monaco-editor [value]="logs"></flink-monaco-editor>
-</nz-card>
-
 <ng-template #extraTemplate>
   <div class="extra">
     <ng-container *ngIf="!isUploading">
