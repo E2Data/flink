@@ -53,7 +53,7 @@ export class HaierService {
 
   loadLogs() {
     const noCacheHeaders = headers.append('Cache-Control', 'no-cache');
-    return this.httpClient.get<HaierLogsInterface>(`${BASE_URL}/logs/`, {
+    return this.httpClient.get<HaierLogsInterface[]>(`${BASE_URL}/logs/`, {
       headers: noCacheHeaders
     });
   }
