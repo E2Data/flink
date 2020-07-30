@@ -15,6 +15,16 @@ const headers = new HttpHeaders({
 export class HaierService {
   constructor(private httpClient: HttpClient) {}
 
+  scheduleJob(jobGraph: any) {
+    const data = new FormData();
+    data.append('file', JSON.stringify(jobGraph));
+
+    return this.httpClient.post(`${BASE_URL}/flink-schedule/`, data, {
+      headers: headers,
+      observe: 'response'
+    });
+  }
+
   /**
    * Get the params
    */

@@ -23,7 +23,7 @@ import { Router } from '@angular/router';
 import { JarFilesItemInterface } from 'interfaces';
 import { Subject } from 'rxjs';
 import { flatMap, takeUntil } from 'rxjs/operators';
-import { JarService, StatusService } from 'services';
+import { JarService, StatusService, HaierService } from 'services';
 import { DagreComponent } from 'share/common/dagre/dagre.component';
 
 @Component({
@@ -113,6 +113,7 @@ export class SubmitComponent implements OnInit, OnDestroy {
         this.validateForm.get('programArgs')!.value
       )
       .subscribe(data => {
+        console.log(data);
         this.planVisible = true;
         this.dagreComponent.flush(data.nodes, data.links, true);
       });
@@ -130,17 +131,39 @@ export class SubmitComponent implements OnInit, OnDestroy {
    * @param jar
    */
   submitJob(jar: JarFilesItemInterface) {
+    // retrieve JobGraph (?)
     this.jarService
-      .runJob(
+      .getPlan(
         jar.id,
         this.validateForm.get('entryClass')!.value,
         this.validateForm.get('parallelism')!.value,
-        this.validateForm.get('programArgs')!.value,
-        this.validateForm.get('savepointPath')!.value,
-        this.validateForm.get('allowNonRestoredState')!.value
+        this.validateForm.get('programArgs')!.value
       )
-      .subscribe(data => {
-        this.router.navigate(['job', data.jobid]).then();
+      .subscribe(plan => {
+        console.log('Plan retrieved');
+        console.log(plan);
+
+        // send to HAIER
+        this.haierService.scheduleJob(plan).subscribe(response => {
+          console.log(response);
+
+          // merge Haier plan with Flink plan
+
+          // submit job
+          this.jarService
+            .runJob(
+              jar.id,
+              this.validateForm.get('entryClass')!.value,
+              this.validateForm.get('parallelism')!.value,
+              this.validateForm.get('programArgs')!.value,
+              this.validateForm.get('savepointPath')!.value,
+              this.validateForm.get('allowNonRestoredState')!.value
+            )
+            .subscribe(data => {
+              console.log(data);
+              this.router.navigate(['job', data.jobid]).then();
+            });
+        });
       });
   }
 
@@ -156,6 +179,7 @@ export class SubmitComponent implements OnInit, OnDestroy {
   constructor(
     private jarService: JarService,
     private statusService: StatusService,
+    private haierService: HaierService,
     private fb: FormBuilder,
     private router: Router,
     private cdr: ChangeDetectorRef
