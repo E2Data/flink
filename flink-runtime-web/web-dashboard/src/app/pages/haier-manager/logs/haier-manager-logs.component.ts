@@ -18,8 +18,8 @@ export class HaierManagerLogsComponent implements OnInit, OnDestroy {
   private reloadLogs() {
     this.isLoading = true;
     this.haierService.loadLogs().subscribe(data => {
-      console.log(data);
-      this.logs = data.logs.join('\n');
+      console.log(typeof data);
+      this.logs = data.join('\n');
       this.isLoading = false;
       this.layoutEditor();
       this.cdr.markForCheck();

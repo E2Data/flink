@@ -14,5 +14,5 @@ export interface HaierJobPlanArrayInterface {
 }
 
 export interface HaierLogsInterface {
-  logs: string[];
+  log: string;
 }
