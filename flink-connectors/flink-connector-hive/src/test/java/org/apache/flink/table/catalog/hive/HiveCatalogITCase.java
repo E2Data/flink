@@ -27,9 +27,11 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.Types;
+import org.apache.flink.table.api.constraints.UniqueConstraint;
 import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.CatalogTableBuilder;
 import org.apache.flink.table.catalog.ObjectPath;
+import org.apache.flink.table.catalog.exceptions.TableNotExistException;
 import org.apache.flink.table.descriptors.FileSystem;
 import org.apache.flink.table.descriptors.FormatDescriptor;
 import org.apache.flink.table.descriptors.OldCsv;
@@ -60,12 +62,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
+import static org.apache.flink.table.api.Expressions.$;
 import static org.apache.flink.table.api.config.ExecutionConfigOptions.TABLE_EXEC_RESOURCE_DEFAULT_PARALLELISM;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
@@ -276,6 +282,32 @@ public class HiveCatalogITCase {
 	}
 
 	private void testReadWriteCsvWithProctime(boolean isStreaming) {
+		TableEnvironment tableEnv = prepareTable(isStreaming);
+		ArrayList<Row> rows = Lists.newArrayList(
+				tableEnv.executeSql("SELECT * FROM proctime_src").collect());
+		Assert.assertEquals(5, rows.size());
+		tableEnv.executeSql("DROP TABLE proctime_src");
+	}
+
+	@Test
+	public void testTableApiWithProctimeForBatch() {
+		testTableApiWithProctime(false);
+	}
+
+	@Test
+	public void testTableApiWithProctimeForStreaming() {
+		testTableApiWithProctime(true);
+	}
+
+	private void testTableApiWithProctime(boolean isStreaming) {
+		TableEnvironment tableEnv = prepareTable(isStreaming);
+		ArrayList<Row> rows = Lists.newArrayList(
+				tableEnv.from("proctime_src").select($("price"), $("ts"), $("l_proctime")).execute().collect());
+		Assert.assertEquals(5, rows.size());
+		tableEnv.executeSql("DROP TABLE proctime_src");
+	}
+
+	private TableEnvironment prepareTable(boolean isStreaming) {
 		EnvironmentSettings.Builder builder = EnvironmentSettings.newInstance().useBlinkPlanner();
 		if (isStreaming) {
 			builder = builder.inStreamingMode();
@@ -303,10 +335,48 @@ public class HiveCatalogITCase {
 						"'connector.path' = 'file://%s'," +
 						"'format.type' = 'csv')", srcPath));
 
-		ArrayList<Row> rows = Lists.newArrayList(
-				tableEnv.executeSql("SELECT * FROM proctime_src").collect());
-		Assert.assertEquals(5, rows.size());
-		tableEnv.executeSql("DROP TABLE proctime_src");
+		return tableEnv;
+	}
+
+	@Test
+	public void testTableWithPrimaryKey() {
+		EnvironmentSettings.Builder builder = EnvironmentSettings.newInstance().useBlinkPlanner();
+		EnvironmentSettings settings = builder.build();
+		TableEnvironment tableEnv = TableEnvironment.create(settings);
+		tableEnv.getConfig().getConfiguration().setInteger(TABLE_EXEC_RESOURCE_DEFAULT_PARALLELISM, 1);
+
+		tableEnv.registerCatalog("catalog1", hiveCatalog);
+		tableEnv.useCatalog("catalog1");
+
+		final String createTable = "CREATE TABLE pk_src (\n" +
+				"  uuid varchar(40) not null,\n" +
+				"  price DECIMAL(10, 2),\n" +
+				"  currency STRING,\n" +
+				"  ts6 TIMESTAMP(6),\n" +
+				"  ts AS CAST(ts6 AS TIMESTAMP(3)),\n" +
+				"  WATERMARK FOR ts AS ts,\n" +
+				"  constraint ct1 PRIMARY KEY(uuid) NOT ENFORCED)\n" +
+				"  WITH (\n" +
+				"    'connector.type' = 'filesystem'," +
+				"    'connector.path' = 'file://fakePath'," +
+				"    'format.type' = 'csv')";
+
+		tableEnv.executeSql(createTable);
+
+		TableSchema tableSchema = tableEnv.getCatalog(tableEnv.getCurrentCatalog())
+				.map(catalog -> {
+					try {
+						final ObjectPath tablePath = ObjectPath.fromString(catalog.getDefaultDatabase() + '.' + "pk_src");
+						return catalog.getTable(tablePath).getSchema();
+					} catch (TableNotExistException e) {
+						return null;
+					}
+				}).orElse(null);
+		assertNotNull(tableSchema);
+		assertEquals(
+				tableSchema.getPrimaryKey(),
+				Optional.of(UniqueConstraint.primaryKey("ct1", Collections.singletonList("uuid"))));
+		tableEnv.executeSql("DROP TABLE pk_src");
 	}
 
 	@Test

@@ -53,6 +53,13 @@ public class PostgresCatalogITCase extends PostgresCatalogTestBase {
 	}
 
 	@Test
+	public void testSelectField() {
+		List<Row> results = Lists.newArrayList(
+			tEnv.sqlQuery(String.format("select id from %s", TABLE1)).execute().collect());
+		assertEquals("[1]", results.toString());
+	}
+
+	@Test
 	public void testWithoutSchema() {
 		List<Row> results = Lists.newArrayList(
 			tEnv.sqlQuery(String.format("select * from %s", TABLE1)).execute().collect());
@@ -137,6 +144,21 @@ public class PostgresCatalogITCase extends PostgresCatalogTestBase {
 				"[2016-06-22T19:10:25, 2019-06-22T19:10:25]," +
 				"[2015-01-01, 2020-01-01]," +
 				"[00:51:03, 00:59:03]]",
+			results.toString());
+	}
+
+	@Test
+	public void testSerialTypes() {
+		List<Row> results = Lists.newArrayList(
+			tEnv.sqlQuery(String.format("select * from %s", TABLE_SERIAL_TYPE)).execute().collect());
+
+		assertEquals("[" +
+				"32767," +
+				"2147483647," +
+				"32767," +
+				"2147483647," +
+				"9223372036854775807," +
+				"9223372036854775807]",
 			results.toString());
 	}
 }
