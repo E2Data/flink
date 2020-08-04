@@ -412,7 +412,7 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 			// fix resources for testing
 			if (vertex.getInvokableClassName().equals("org.apache.flink.runtime.operators.BatchTask")) {
 				ResourceSpec minResources = ResourceSpec.newBuilder(0, 0).addExtendedResource(
-						"yarn.io/gpu-geforce1080gtx", new AcceleratorResource("yarn.io/gpu-geforce1080gtx")).build();
+						"yarn.io/gpu-geforcegtx1080", new AcceleratorResource("yarn.io/gpu-geforcegtx1080")).build();
 				vertex.setResources(minResources, minResources);
 			} else {
 				ResourceSpec minResources = ResourceSpec.newBuilder(0, 0).build();
