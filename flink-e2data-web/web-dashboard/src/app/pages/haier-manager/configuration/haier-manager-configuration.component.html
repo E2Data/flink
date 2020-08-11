@@ -1,0 +1,57 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<nz-card [nzBordered]="false" [nzTitle]="'NSGA2 Parameters'" [nzLoading]="isLoadingParams">
+  <ng-container>
+    <nz-table
+      #editRowTable
+      [nzSize]="'small'"
+      [nzData]="ngsaParams"
+      [nzFrontPagination]="false"
+      [nzShowPagination]="false"
+      class="no-border">
+      <thead>
+        <tr>
+          <th nzWidth="40%">Parameter</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let param of ngsaParams" class="editable-row">
+          <td>{{param.name}}</td>
+          <td>
+            <div class="editable-cell" [hidden]="editId === param.name" (click)="startEdit(param.name)">
+              {{ param.value }}
+            </div>
+            <nz-input-number [hidden]="editId !== param.name" type="text" nz-input [(ngModel)]="param.value" (keyup.enter)="stopEdit()" ></nz-input-number>
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </ng-container>
+</nz-card>
+<ng-template #extraTemplate>
+  <div class="extra">
+    <ng-container *ngIf="!isUploading">
+      <input flinkFileRead type="file" class="input-file" id="upload-file" (fileRead)="uploadJobGraph($event)">
+      <label for="upload-file" class="upload ant-btn-primary ant-btn ant-btn-sm">
+        <span><i nz-icon type="plus"></i>New JobGraph</span>
+      </label>
+    </ng-container>
+    <nz-progress *ngIf="isUploading" [nzPercent]="progress" nzSize="small" [nzShowInfo]="false"></nz-progress>
+  </div>
+</ng-template>

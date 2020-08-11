@@ -59,6 +59,7 @@ under the License.
 		<module>flink-filesystems</module>
 		<module>flink-runtime</module>
 		<module>flink-runtime-web</module>
+		<module>flink-e2data-web</module>
 		<module>flink-optimizer</module>
 		<module>flink-streaming-java</module>
 		<module>flink-streaming-scala</module>
@@ -1435,6 +1436,28 @@ under the License.
 						<!-- downloaded and generated web libraries. -->
 						<exclude>flink-runtime-web/web-dashboard/node_modules/**</exclude>
 						<exclude>flink-runtime-web/web-dashboard/node/**</exclude>
+
+						<!-- web e2data dashboard config JSON files -->
+						<exclude>flink-e2data-web/web-dashboard/package.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/package-lock.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/angular.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/proxy.conf.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/tsconfig.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/tslint.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/src/browserslist</exclude>
+						<exclude>flink-e2data-web/web-dashboard/src/tsconfig.app.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/src/tsconfig.spec.json</exclude>
+						<exclude>flink-e2data-web/web-dashboard/src/tslint.json</exclude>
+
+						<!-- web e2data dashboard non-binary assets -->
+						<exclude>flink-e2data-web/web-dashboard/src/assets/**</exclude>
+
+						<!-- generated e2data contents -->
+						<exclude>flink-e2data-web/web-dashboard/web/**</exclude>
+
+						<!-- downloaded and generated web e2data libraries. -->
+						<exclude>flink-e2data-web/web-dashboard/node_modules/**</exclude>
+						<exclude>flink-e2data-web/web-dashboard/node/**</exclude>
 
 						<!-- Test Data. -->
 						<exclude>**/src/test/resources/*-data</exclude>
