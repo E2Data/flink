@@ -191,7 +191,7 @@ public class E2DataServer {
 
 
 			Router router = new Router();
-			router.addGet("/e2data/start-flink", new StartFlinkHandler(router));
+			router.addGet("/e2data/:command", new StartFlinkHandler(router));
 			router.addGet("/:*", new E2DataServerStaticFileServerHandler(webDir));
 
 			if (!webDir.exists() && !webDir.mkdirs()) {

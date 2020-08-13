@@ -13,10 +13,14 @@ import org.apache.flink.shaded.netty4.io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Scanner;
 
 @ChannelHandler.Sharable
 public class StartFlinkHandler extends SimpleChannelInboundHandler<RoutedRequest> {
+
+	private final static String COMMAND = "command";
+	private final static String PATH = "/Users/christos/Projects/flink/flink-dist/target/flink-1.12-SNAPSHOT-bin/flink-1.12-SNAPSHOT/bin/";
 
 	/** Default logger, if none is specified. */
 	private static final Logger LOG = LoggerFactory.getLogger(StartFlinkHandler.class);
@@ -31,21 +35,34 @@ public class StartFlinkHandler extends SimpleChannelInboundHandler<RoutedRequest
 	protected void channelRead0(ChannelHandlerContext channelHandlerContext, RoutedRequest routedRequest) throws Exception {
 		LOG.error("Read RoutedRequest");
 
-		try {
-			ProcessBuilder processBuilder = new ProcessBuilder("bash", "/Users/christos/Projects/flink/flink-dist/src/main/flink-bin/bin/test-flink.sh");
-			processBuilder.inheritIO();
-			Process process = processBuilder.start();
-			Scanner scanner = new Scanner(process.getInputStream()).useDelimiter("\\A");
-			LOG.error(scanner.next());
-			process.waitFor();
-		} finally {
-			returnResponse(channelHandlerContext, routedRequest);
+		RouteResult<String> routeResult = router.route(routedRequest.getRequest().method(), routedRequest.getRequest().uri());
+		Map<String, String> params = routeResult.pathParams();
+
+		String command = params.getOrDefault(COMMAND, "");
+		if (!command.isEmpty()) {
+			try {
+				LOG.error("Command to run: " + command);
+
+				ProcessBuilder processBuilder = new ProcessBuilder(
+					"bash",
+					PATH + "e2datamanager.sh",
+					command);
+
+				processBuilder.inheritIO();
+				Process process = processBuilder.start();
+				Scanner scanner = new Scanner(process.getInputStream()).useDelimiter("\\A");
+				LOG.error(scanner.next());
+				process.waitFor();
+			} finally {
+				returnResponse(channelHandlerContext, routedRequest, routeResult);
+			}
+		}
+		else {
+			returnResponse(channelHandlerContext, routedRequest, routeResult);
 		}
 	}
 
-	private void returnResponse(ChannelHandlerContext channelHandlerContext, RoutedRequest routedRequest) {
-		RouteResult<String> routeResult = router.route(routedRequest.getRequest().method(), routedRequest.getRequest().uri());
-
+	private void returnResponse(ChannelHandlerContext channelHandlerContext, RoutedRequest routedRequest, RouteResult routeResult) {
 		String content =
 			"router: \n" + router + "\n" +
 				"req: " + routedRequest + "\n\n" +
