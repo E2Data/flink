@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.e2data;
 
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.E2DataServerOptions;
 import org.apache.flink.runtime.net.SSLUtils;
 
 import org.slf4j.Logger;

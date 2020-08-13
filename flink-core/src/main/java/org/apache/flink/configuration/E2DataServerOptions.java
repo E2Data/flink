@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.e2data;
+package org.apache.flink.configuration;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.SecurityOptions;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
 
