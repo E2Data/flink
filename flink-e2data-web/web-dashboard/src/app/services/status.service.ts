@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { EMPTY, fromEvent, interval, merge, Subject } from 'rxjs';
-import { debounceTime, filter, map, mapTo, share, startWith, switchMap, tap } from 'rxjs/operators';
-import { BASE_URL } from '../app.config';
-import { ConfigurationInterface } from 'interfaces';
+import { debounceTime, filter, map, mapTo, share, startWith, switchMap } from 'rxjs/operators';
+
+const refreshInterval: number = 10000;
 
 @Injectable({
   providedIn: 'root'
@@ -32,10 +31,6 @@ export class StatusService {
    * Error server response message cache list
    */
   listOfErrorMessage: string[] = [];
-  /**
-   * Flink configuration from backend
-   */
-  configuration: ConfigurationInterface;
   /**
    * Refresh stream generated from the configuration
    */
@@ -61,30 +56,22 @@ export class StatusService {
    * refresh interval stream will be regenerated when NavigationEnd || forceRefresh || visibility change
    * @param router
    */
-  boot(router: Router): Promise<ConfigurationInterface> {
-    return this.httpClient
-      .get<ConfigurationInterface>(`${BASE_URL}/config`)
-      .pipe(
-        tap(data => {
-          this.configuration = data;
-          const navigationEnd$ = router.events.pipe(
-            filter(item => item instanceof NavigationEnd),
-            mapTo(true)
-          );
-          const interval$ = interval(this.configuration['refresh-interval']).pipe(
-            mapTo(true),
-            startWith(true)
-          );
-          this.refresh$ = merge(this.visibility$, this.forceRefresh$, navigationEnd$).pipe(
-            startWith(true),
-            debounceTime(300),
-            switchMap(active => (active ? interval$ : EMPTY)),
-            share()
-          );
-        })
-      )
-      .toPromise();
+  boot(router: Router) {
+    const navigationEnd$ = router.events.pipe(
+      filter(item => item instanceof NavigationEnd),
+      mapTo(true)
+    );
+    const interval$ = interval(refreshInterval).pipe(
+      mapTo(true),
+      startWith(true)
+    );
+    this.refresh$ = merge(this.visibility$, this.forceRefresh$, navigationEnd$).pipe(
+      startWith(true),
+      debounceTime(300),
+      switchMap(active => (active ? interval$ : EMPTY)),
+      share()
+    );
   }
 
-  constructor(private httpClient: HttpClient) {}
+  constructor() {}
 }

@@ -16,30 +16,48 @@
  * limitations under the License.
  */
 
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
-import { JobsItemInterface } from 'interfaces';
-import { Observable, Subject } from 'rxjs';
-import { flatMap, share, takeUntil } from 'rxjs/operators';
-import { StatusService, JobService } from 'services';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { StatusService, E2DataService } from 'services';
 
 @Component({
-  selector: 'flink-overview',
+  selector: 'e2data-overview',
   templateUrl: './overview.component.html',
   styleUrls: ['./overview.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OverviewComponent implements OnInit, OnDestroy {
-  jobData$: Observable<JobsItemInterface[]>;
   destroy$ = new Subject();
+  jobManagerStatus: string = 'offline';
 
-  constructor(private statusService: StatusService, private jobService: JobService) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private statusService: StatusService,
+    private e2dataService: E2DataService
+  ) {}
+
+  startFlink() {
+    console.log('starting Flink...');
+    this.e2dataService.startFlink();
+  }
+
+  stopFlink() {
+    console.log('stopping Flink...');
+    this.e2dataService.stopFlink();
+  }
 
   ngOnInit() {
-    this.jobData$ = this.statusService.refresh$.pipe(
-      takeUntil(this.destroy$),
-      flatMap(() => this.jobService.loadJobs()),
-      share()
-    );
+    this.e2dataService.jobManagerStatus$.pipe(takeUntil(this.destroy$)).subscribe(online => {
+      this.jobManagerStatus = online ? 'online' : 'offline';
+      this.cdr.markForCheck();
+      console.log(online);
+      console.log(this.jobManagerStatus);
+    });
+
+    this.statusService.refresh$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.e2dataService.checkJobManagerStatus();
+    });
   }
 
   ngOnDestroy() {

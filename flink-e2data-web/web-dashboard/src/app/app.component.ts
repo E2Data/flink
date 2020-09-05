@@ -35,8 +35,6 @@ export class AppComponent {
     fromEvent(window, 'online').pipe(map(() => true))
   ).pipe(startWith(true));
 
-  webSubmitEnabled = this.statusService.configuration.features['web-submit'];
-
   showMessage() {
     if (this.statusService.listOfErrorMessage.length) {
       this.visible = true;

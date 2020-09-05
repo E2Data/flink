@@ -16,12 +16,6 @@
  * limitations under the License.
  */
 
-export * from './status.service';
-export * from './overview.service';
-export * from './job.service';
-export * from './jar.service';
-export * from './job-manager.service';
-export * from './task-manager.service';
-export * from './metrics.service';
-export * from './haier.service';
-export * from './e2data.service';
+export interface E2DataStatusInterface {
+  alive: boolean;
+}

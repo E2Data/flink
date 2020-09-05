@@ -7,7 +7,8 @@
     "build": "ng build --prod --base-href ./",
     "test": "ng test",
     "lint": "ng lint",
-    "proxy": "ng serve --port 4201 --proxy-config proxy.conf.json"
+    "proxy": "ng serve --port 4201 --proxy-config proxy.conf.json",
+    "e2data": "ng serve --port 8082"
   },
   "private": true,
   "dependencies": {

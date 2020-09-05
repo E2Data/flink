@@ -264,7 +264,7 @@ jobmanager.execution.failover-strategy: region
 #e2dataserver.web.address: 0.0.0.0
 
 # The port under which the web-based E2DataServer listens.
-e2dataserver.web.port: 8085
+#e2dataserver.web.port: 8085
 
 # Interval in milliseconds for refreshing the monitored directories.
 #e2dataserver.archive.fs.refresh-interval: 10000

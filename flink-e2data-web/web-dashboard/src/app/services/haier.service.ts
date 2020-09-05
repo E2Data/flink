@@ -1,8 +1,9 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { HaierParamsInterface, HaierJobPlanArrayInterface, HaierLogsInterface } from 'interfaces';
+import { BASE_URL } from 'config';
 
-const BASE_URL = 'https://virtserver.swaggerhub.com/c-triantaf/e-2_data_haier_api/1.0-SNAPSHOT';
+// const BASE_URL = 'https://virtserver.swaggerhub.com/c-triantaf/e-2_data_haier_api/1.0-SNAPSHOT';
 const TOKEN = 'JKmpuzHau8jVGGABWF6ITbLh6Xqi';
 const headers = new HttpHeaders({
   'Content-Type': 'application/json',

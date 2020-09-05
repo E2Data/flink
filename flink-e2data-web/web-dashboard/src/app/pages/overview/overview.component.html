@@ -16,6 +16,13 @@
   ~ limitations under the License.
   -->
 
+<nz-card [nzBordered]="false" [nzTitle]="'Buttons'">
+    <ng-container>
+        <button nz-button nzType="primary" (click)="startFlink()">Start</button>
+        <button nz-button nzType="primary" (click)="stopFlink()">Stop</button>
+        <div>{{ jobManagerStatus }}</div>
+    </ng-container>
+</nz-card>
 <flink-overview-statistic></flink-overview-statistic>
 <flink-job-list [jobData$]="jobData$" [title]="'Running Job List'" [completed]="false"></flink-job-list>
 <flink-job-list [jobData$]="jobData$" [title]="'Completed Job List'" [completed]="true"></flink-job-list>

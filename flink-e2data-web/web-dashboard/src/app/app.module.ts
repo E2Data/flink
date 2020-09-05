@@ -67,17 +67,19 @@ import {
 } from '@ant-design/icons-angular/icons';
 
 import { StatusService } from 'services';
-import { ConfigurationInterface } from 'interfaces';
 import { AppInterceptor } from './app.interceptor';
 
 registerLocaleData(en);
 
-export function AppInitServiceFactory(
-  statusService: StatusService,
-  injector: Injector
-): () => Promise<ConfigurationInterface> {
+export function AppInitServiceFactory(statusService: StatusService, injector: Injector) {
   return () => {
-    return statusService.boot(injector.get<Router>(Router));
+    statusService.boot(injector.get<Router>(Router));
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log('In initApp');
+        resolve();
+      }, 1000);
+    });
   };
 }
 
