@@ -21,6 +21,9 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { StatusService, E2DataService } from 'services';
 
+const OFFLINE = 'Offline';
+const ONLINE = 'Online';
+
 @Component({
   selector: 'e2data-overview',
   templateUrl: './overview.component.html',
@@ -29,13 +32,17 @@ import { StatusService, E2DataService } from 'services';
 })
 export class OverviewComponent implements OnInit, OnDestroy {
   destroy$ = new Subject();
-  jobManagerStatus: string = 'offline';
+  jobManagerStatus: string = 'Offline';
 
   constructor(
     private cdr: ChangeDetectorRef,
     private statusService: StatusService,
     private e2dataService: E2DataService
   ) {}
+
+  flinkButtonWasClicked() {
+    this.jobManagerStatus == OFFLINE ? this.startFlink() : this.stopFlink();
+  }
 
   startFlink() {
     console.log('starting Flink...');
@@ -49,7 +56,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.e2dataService.jobManagerStatus$.pipe(takeUntil(this.destroy$)).subscribe(online => {
-      this.jobManagerStatus = online ? 'online' : 'offline';
+      this.jobManagerStatus = online ? ONLINE : OFFLINE;
       this.cdr.markForCheck();
       console.log(online);
       console.log(this.jobManagerStatus);

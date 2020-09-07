@@ -20,3 +20,43 @@ flink-job-list {
   display: block;
   margin-bottom: 24px;
 }
+
+flink-overview-statistic {
+  margin-top: 24px;
+  margin-bottom: 24px
+}
+
+.e2data-card {
+  margin-bottom: 24px;
+}
+
+.status {
+  font-weight: bold;
+}
+
+.status-icon {
+  display:inline-block;
+  height: 10px;
+  width: 10px;
+  border-radius: 5px;
+}
+
+.icon-offline {
+  &:extend(.status-icon);
+  background: red;
+}
+
+.icon-online {
+  &:extend(.status-icon);
+  background: green;
+}
+
+.control-button {
+  margin-top: 12px;
+}
+
+.control-button-stop {
+  &:extend(.control-button);
+  background: #FF4500;
+  border-color: #FF4500;
+}
