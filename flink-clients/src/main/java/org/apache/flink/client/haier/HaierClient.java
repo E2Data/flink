@@ -19,6 +19,10 @@
 package org.apache.flink.client.haier;
 
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.util.Preconditions;
 
 import org.apache.http.HttpEntity;
@@ -34,6 +38,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -42,13 +51,13 @@ import java.util.concurrent.CompletableFuture;
 public class HaierClient {
 
 	private static final Logger LOG = LoggerFactory
-			.getLogger(HaierClient.class);
+		.getLogger(HaierClient.class);
 
 	private final String haierUrl;
 
 	/**
 	 * Create a HAIER client using settings from the Flink configuration.
-     *
+	 *
 	 * @param config Flink configuration object.
 	 */
 	public static HaierClient fromConfiguration(Configuration config) {
@@ -85,6 +94,7 @@ public class HaierClient {
 			final HttpPost haierReq = new HttpPost(haierUrl);
 			haierReq.setEntity(haierReqEntity);
 
+			List<HaierSerializableScheduledJobVertex> haierJobVertices = null;
 			try {
 				LOG.info("Executing request:  " + haierReq.getRequestLine());
 				final CloseableHttpResponse haierRes = haierClient.execute(haierReq);
@@ -93,6 +103,11 @@ public class HaierClient {
 					final HttpEntity haierResEntity = haierRes.getEntity();
 					if (haierResEntity != null) {
 						LOG.info("Response's Content-Length:  " + haierResEntity.getContentLength());
+						OutputStream haierStream = new ByteArrayOutputStream();
+						haierResEntity.writeTo(haierStream);
+						String haierRawJSON = haierStream.toString();
+						ObjectMapper haierVertexMapper = new ObjectMapper().addMixIn(JobVertexID.class, HaierJobVertexMixin.class);
+						haierJobVertices = haierVertexMapper.readValue(haierRawJSON, new TypeReference<List<HaierSerializableScheduledJobVertex>>(){});
 					}
 					EntityUtils.consume(haierResEntity);
 				} finally {
