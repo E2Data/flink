@@ -300,19 +300,26 @@ public class RestClusterClient<T> implements ClusterClient<T> {
 
 	@Override
 	public CompletableFuture<JobID> submitJob(@Nonnull JobGraph jobGraph) {
-		CompletableFuture<java.nio.file.Path> jobGraphFileFuture = CompletableFuture.supplyAsync(() -> {
+
+		CompletableFuture<JobGraph> enrichedJobGraphFuture = restClusterClientConfiguration.isEnrichJobGraph() ? CompletableFuture.supplyAsync(() -> {
+			try {
+				return haierClient.enrichJobGraph(jobGraph);
+			} catch (FlinkException e) {
+				throw new CompletionException(e);
+			}
+		}, executorService) : CompletableFuture.completedFuture(jobGraph);
+
+		CompletableFuture<java.nio.file.Path> jobGraphFileFuture = enrichedJobGraphFuture.thenApplyAsync((enrichedJobGraph) -> {
 			try {
 				final java.nio.file.Path jobGraphFile = Files.createTempFile("flink-jobgraph", ".bin");
 				try (ObjectOutputStream objectOut = new ObjectOutputStream(Files.newOutputStream(jobGraphFile))) {
-					objectOut.writeObject(jobGraph);
+					objectOut.writeObject(enrichedJobGraph);
 				}
 				return jobGraphFile;
 			} catch (IOException e) {
 				throw new CompletionException(new FlinkException("Failed to serialize JobGraph.", e));
 			}
 		}, executorService);
-
-		jobGraphFileFuture = restClusterClientConfiguration.isEnrichJobGraph() ? haierClient.enrichJob(jobGraphFileFuture) : jobGraphFileFuture;
 
 		CompletableFuture<Tuple2<JobSubmitRequestBody, Collection<FileUpload>>> requestFuture = jobGraphFileFuture.thenApply(jobGraphFile -> {
 			List<String> jarFileNames = new ArrayList<>(8);
