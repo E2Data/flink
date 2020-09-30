@@ -18,8 +18,12 @@
 
 package org.apache.flink.client.haier;
 
+import org.apache.flink.api.common.ProcessingUnitType;
+import org.apache.flink.api.common.operators.ResourceSpec;
+import org.apache.flink.api.common.resources.AcceleratorResource;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
@@ -157,6 +161,32 @@ public class HaierClient {
 	}
 
 	private JobGraph mergeHaierSchedule(JobGraph jobGraph, List<HaierSerializableScheduledJobVertex> haierJobVertices) {
+		for (JobVertex vertex : jobGraph.getVertices()) {
+			for (HaierSerializableScheduledJobVertex haierVertex : haierJobVertices) {
+				if (vertex.getID().equals(haierVertex.id)) {
+					final String resourceName = haierVertex.assignedResource.getName();
+
+					if (resourceName.contains("vcores")) {
+						AcceleratorResource resource = new AcceleratorResource(resourceName);
+						int cores = haierVertex.assignedResource.value;
+						ResourceSpec spec = ResourceSpec.newBuilder(cores, 0)
+							.setProcessingUnitType(ProcessingUnitType.CPU)
+							.build();
+						vertex.setResources(spec, spec);
+					}
+					else if (resourceName.contains("gpu")) {
+						// TODO: Assign host name to AcceleratorResource
+						AcceleratorResource resource = new AcceleratorResource(resourceName);
+						ResourceSpec spec = ResourceSpec.newBuilder(0, 0)
+							.addExtendedResource(resourceName, resource)
+							.setProcessingUnitType(ProcessingUnitType.GPU)
+							.build();
+						vertex.setResources(spec, spec);
+					}
+				}
+			}
+		}
+
 		return jobGraph;
 	}
 }
