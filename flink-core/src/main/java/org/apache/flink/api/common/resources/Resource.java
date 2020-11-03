@@ -56,7 +56,7 @@ public abstract class Resource implements Serializable {
 		checkArgument(getClass() == other.getClass(), "Merge with different resource type");
 		checkArgument(name.equals(other.name), "Merge with different resource name");
 
-		return create(value.add(other.value));
+		return create(value.max(other.value));
 	}
 
 	public Resource subtract(Resource other) {

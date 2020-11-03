@@ -25,6 +25,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
+import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.util.FlinkException;
@@ -79,7 +80,7 @@ public class HaierClient {
 	 * @return Enriched JobGraph, or original JobGraph if HAIER URL is not configured.
 	 */
 	public JobGraph enrichJobGraph(@Nonnull JobGraph jobGraph) throws FlinkException {
-		LOG.info("vvvvvvvvvvvvvvvvvvv   HAIER   vvvvvvvvvvvvvvvvvvvvvvvv\n\n\n\n\n");
+		LOG.info("vvvvvvvvvvvvvvvvvvv   HAIER   vvvvvvvvvvvvvvvvvvvvvvvv");
 
 		try {
 			Preconditions.checkNotNull(this.haierUrl);
@@ -173,6 +174,13 @@ public class HaierClient {
 							.setProcessingUnitType(ProcessingUnitType.CPU)
 							.build();
 						vertex.setResources(spec, spec);
+
+						// Make sure that ResourceSpec of SlotSharingGroup is updated. The JobMaster requests YARN
+						// containers based on the the SlotSharingGroup, not the vertex.
+						SlotSharingGroup slotSharingGroup = vertex.getSlotSharingGroup();
+						slotSharingGroup.addVertexToGroup(vertex.getID(), spec);
+
+						LOG.info("HAIER is requesting the resource: " + spec + " for the vertex " + vertex);
 					}
 					else if (resourceName.contains("gpu")) {
 						// TODO: Assign host name to AcceleratorResource
@@ -182,6 +190,16 @@ public class HaierClient {
 							.setProcessingUnitType(ProcessingUnitType.GPU)
 							.build();
 						vertex.setResources(spec, spec);
+
+						// Make sure that ResourceSpec of SlotSharingGroup is updated. The JobMaster requests YARN
+						// containers based on the the SlotSharingGroup, not the vertex.
+						SlotSharingGroup slotSharingGroup = vertex.getSlotSharingGroup();
+						slotSharingGroup.addVertexToGroup(vertex.getID(), spec);
+
+						LOG.info("HAIER is requesting the resource: " + spec + " for the vertex " + vertex);
+					}
+					else {
+						LOG.info("HAIER is requesting an unknown resource: " + resourceName + " for the vertex " + vertex);
 					}
 				}
 			}

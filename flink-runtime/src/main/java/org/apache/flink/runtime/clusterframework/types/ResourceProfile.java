@@ -311,6 +311,7 @@ public class ResourceProfile implements Serializable {
 		}
 
 		if (this.equals(UNKNOWN)) {
+			LOG.debug("Request for match on: " + required + " where self is: " + this + " is false");
 			return false;
 		}
 

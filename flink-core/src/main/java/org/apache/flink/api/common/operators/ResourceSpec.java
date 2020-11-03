@@ -62,10 +62,15 @@ public final class ResourceSpec implements Serializable {
 	public static final ResourceSpec UNKNOWN = new ResourceSpec();
 
 	/**
+	 * A ResourceSpec that indicates zero amount of resources.
+	 */
+	public static final ResourceSpec ZERO = ResourceSpec.newBuilder(0.0, 0).build();
+
+	/**
 	 * The default ResourceSpec used for operators and transformation functions.
 	 * Currently equal to {@link #UNKNOWN}.
 	 */
-	public static final ResourceSpec DEFAULT = UNKNOWN;
+	public static final ResourceSpec DEFAULT = ZERO;
 
 	/**
 	 * Which processing unit type is needed.
@@ -74,11 +79,6 @@ public final class ResourceSpec implements Serializable {
 	 * normally be specified in extendedResources, because YARN specifies them as such.
 	 */
 	private final ProcessingUnitType processingUnitType;
-
-	/**
-	 * A ResourceSpec that indicates zero amount of resources.
-	 */
-	public static final ResourceSpec ZERO = ResourceSpec.newBuilder(0.0, 0).build();
 
 	/** How many cpu cores are needed. Can be null only if it is unknown. */
 	@Nullable
@@ -154,14 +154,24 @@ public final class ResourceSpec implements Serializable {
 	public ResourceSpec merge(final ResourceSpec other) {
 		checkNotNull(other, "Cannot merge with null resources");
 
-		if (this.equals(UNKNOWN) || other.equals(UNKNOWN)) {
-			return UNKNOWN;
+		if (this.equals(UNKNOWN)) {
+			return other;
+		} else if (other.equals(UNKNOWN)) {
+			return this;
 		}
 
-		if (this.processingUnitType != ProcessingUnitType.ANY ||
-			other.processingUnitType != ProcessingUnitType.ANY) {
-			throw new IllegalStateException(
-				"ResourceSpec must have ProcessingUnitType.ANY to be merged.");
+		ProcessingUnitType mergedProcessingUnitType = ProcessingUnitType.ANY;
+		if (this.processingUnitType == other.processingUnitType) {
+			mergedProcessingUnitType = this.processingUnitType;
+		} else if (this.processingUnitType == ProcessingUnitType.ANY) {
+			mergedProcessingUnitType = other.processingUnitType;
+		} else if (other.processingUnitType == ProcessingUnitType.ANY) {
+			mergedProcessingUnitType = this.processingUnitType;
+		} else {
+			throw new IllegalArgumentException(
+				"Failed to merge ResourceSpecs due to conflicting requirements. Found ResourceSpecs: "
+					+ this + " and " + other
+			);
 		}
 
 		Map<String, Resource> resultExtendedResource = new HashMap<>(extendedResources);
@@ -171,7 +181,7 @@ public final class ResourceSpec implements Serializable {
 		}
 
 		ResourceSpec target = new ResourceSpec(
-			ProcessingUnitType.ANY,
+			mergedProcessingUnitType,
 			this.cpuCores.merge(other.cpuCores),
 			this.taskHeapMemory.add(other.taskHeapMemory),
 			this.taskOffHeapMemory.add(other.taskOffHeapMemory),

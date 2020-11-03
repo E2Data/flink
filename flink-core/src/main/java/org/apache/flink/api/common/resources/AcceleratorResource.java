@@ -51,7 +51,7 @@ public class AcceleratorResource extends Resource {
 	@Override
 	public Resource merge(Resource other) {
 		Preconditions.checkArgument(this.getName().equals(other.getName()), "Can only merge accelerator resources with same name");
-		return new AcceleratorResource(this.getName(), this.getValue().add(other.getValue()));
+		return new AcceleratorResource(this.getName(), this.getValue().max(other.getValue()));
 	}
 
 	@Override
