@@ -26,8 +26,10 @@ import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.client.deployment.ClusterRetrieveException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.deployment.application.ApplicationConfiguration;
+import org.apache.flink.client.haier.HaierClient;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.client.program.rest.RestClusterClient;
+import org.apache.flink.client.program.rest.RestClusterClientConfiguration;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.ConfigUtils;
 import org.apache.flink.configuration.Configuration;
@@ -800,6 +802,12 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		// write job graph to tmp file and add it to local resource
 		// TODO: server use user main method to generate job graph
 		if (jobGraph != null) {
+			jobGraph = RestClusterClientConfiguration
+				.fromConfiguration(configuration)
+				.isEnrichJobGraph()
+				? HaierClient.fromConfiguration(configuration).enrichJobGraph(jobGraph)
+				: jobGraph;
+
 			File tmpJobGraphFile = null;
 			try {
 				tmpJobGraphFile = File.createTempFile(appId.toString(), null);
