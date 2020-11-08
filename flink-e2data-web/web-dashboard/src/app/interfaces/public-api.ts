@@ -33,3 +33,4 @@ export * from './task-manager';
 export * from './job-accumulators';
 export * from './haier';
 export * from './e2data';
+export * from './yarn';

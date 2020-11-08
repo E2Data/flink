@@ -17,22 +17,22 @@
   -->
 
 <nz-card [nzBordered]="false" [nzTitle]="'E2Data'" class="e2data-card">
-  <ng-container>
-    <div><span class="status">Status:</span> {{ jobManagerStatus }} <span
-            [ngClass]="{'icon-online': jobManagerStatus != 'Offline',
-                'icon-offline': jobManagerStatus == 'Offline'}"></span></div>
-
-
-    <button nz-button nzType="primary" (click)="flinkButtonWasClicked()"
-            [ngClass]="{'control-button': jobManagerStatus == 'Offline',
-                'control-button-stop': jobManagerStatus != 'Offline'}">
-      {{ jobManagerStatus == 'Offline' ? "Start" : "Stop" }}
-    </button>
-  </ng-container>
+  <div>
+    <span class="status">Status:</span> {{ jobManagerStatus }} <span
+          [ngClass]="{'icon-online': jobManagerStatus != 'Offline',
+              'icon-offline': jobManagerStatus == 'Offline'}"></span>
+  </div>
+  <button nz-button nzType="primary" (click)="flinkButtonWasClicked()"
+          [ngClass]="{'control-button': jobManagerStatus == 'Offline',
+              'control-button-stop': jobManagerStatus != 'Offline'}">
+    {{ jobManagerStatus == 'Offline' ? "Start" : "Stop" }}
+  </button>
 </nz-card>
 
-<ng-container *ngIf="jobManagerStatus != 'Offline'">
+<yarn-manager></yarn-manager>
+
+<div *ngIf="jobManagerStatus != 'Offline'">
   <flink-overview-statistic></flink-overview-statistic>
   <flink-job-list [jobData$]="jobData$" [title]="'Running Job List'" [completed]="false"></flink-job-list>
   <flink-job-list [jobData$]="jobData$" [title]="'Completed Job List'" [completed]="true"></flink-job-list>
-</ng-container>
+</div>

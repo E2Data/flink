@@ -15,14 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@import "theme";
 
-export * from './status.service';
-export * from './overview.service';
-export * from './job.service';
-export * from './jar.service';
-export * from './job-manager.service';
-export * from './task-manager.service';
-export * from './metrics.service';
-export * from './haier.service';
-export * from './e2data.service';
-export * from './yarn.service';
+nz-card {
+  ::ng-deep {
+    .ant-card-head {
+      border-bottom: 0;
+    }
+
+    .ant-card-body {
+      padding: 0 24px 8px;
+    }
+  }
+
+  margin-bottom: 24px;
+}

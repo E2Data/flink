@@ -16,13 +16,34 @@
  * limitations under the License.
  */
 
-export * from './status.service';
-export * from './overview.service';
-export * from './job.service';
-export * from './jar.service';
-export * from './job-manager.service';
-export * from './task-manager.service';
-export * from './metrics.service';
-export * from './haier.service';
-export * from './e2data.service';
-export * from './yarn.service';
+export interface YarnClusterMetricsInterface {
+  appsSubmitted: number;
+  appsCompleted: number;
+  appsPending: number;
+  appsRunning: number;
+  appsFailed: number;
+  appsKilled: number;
+  reservedMB: number;
+  availableMB: number;
+  allocatedMB: number;
+  reservedVirtualCores: number;
+  availableVirtualCores: number;
+  allocatedVirtualCores: number;
+  containersAllocated: number;
+  containersReserved: number;
+  containersPending: number;
+  totalMB: number;
+  totalVirtualCores: number;
+  totalNodes: number;
+  lostNodes: number;
+  unhealthyNodes: number;
+  decommissioningNodes: number;
+  decommissionedNodes: number;
+  rebootedNodes: number;
+  activeNodes: number;
+  shutdownNodes: number;
+}
+
+export interface YarnClusterInfoInterface {
+  clusterMetrics: YarnClusterMetricsInterface;
+}

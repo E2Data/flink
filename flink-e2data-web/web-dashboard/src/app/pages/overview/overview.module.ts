@@ -22,9 +22,10 @@ import { ShareModule } from 'share/share.module';
 import { OverviewRoutingModule } from './overview-routing.module';
 import { OverviewComponent } from './overview.component';
 import { OverviewStatisticComponent } from './statistic/overview-statistic.component';
+import { YarnManagerModule } from '../yarn-manager/yarn-manager.module';
 
 @NgModule({
-  imports: [CommonModule, ShareModule, OverviewRoutingModule],
+  imports: [CommonModule, ShareModule, OverviewRoutingModule, YarnManagerModule],
   declarations: [OverviewComponent, OverviewStatisticComponent]
 })
 export class OverviewModule {}
