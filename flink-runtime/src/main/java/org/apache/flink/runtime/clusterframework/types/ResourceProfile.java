@@ -383,7 +383,7 @@ public class ResourceProfile implements Serializable {
 	public ResourceProfile merge(final ResourceProfile other) {
 		checkNotNull(other, "Cannot merge with null resources");
 
-		if (equals(ANY) || other.equals(ANY)) {
+		if (equals(ANY) && other.equals(ANY)) {
 			return ANY;
 		}
 
@@ -391,17 +391,33 @@ public class ResourceProfile implements Serializable {
 			return UNKNOWN;
 		}
 
-		// FIXME: ensure that both profiles have the same ProcessingUnitType
+		ProcessingUnitType mergedProcessingUnitType = ProcessingUnitType.ANY;
+		if (this.processingUnitType == other.processingUnitType) {
+			mergedProcessingUnitType = this.processingUnitType;
+		} else if (this.processingUnitType == ProcessingUnitType.ANY) {
+			mergedProcessingUnitType = other.processingUnitType;
+		} else if (other.processingUnitType == ProcessingUnitType.ANY) {
+			mergedProcessingUnitType = this.processingUnitType;
+		} else {
+			throw new IllegalArgumentException(
+				"Failed to merge ResourceProfiles due to conflicting requirements. Found ResourceProfiles: "
+					+ this + " and " + other
+			);
+		}
 
 		Map<String, Resource> resultExtendedResource = new HashMap<>(extendedResources);
 
-		other.extendedResources.forEach((String name, Resource resource) -> {
-			resultExtendedResource.compute(name, (ignored, oldResource) ->
-				oldResource == null ? resource : oldResource.merge(resource));
-		});
+		for (Resource resource : other.extendedResources.values()) {
+			resultExtendedResource.merge(resource.getName(), resource, (v1, v2) -> v1.merge(v2));
+		}
+
+//		other.extendedResources.forEach((String name, Resource resource) -> {
+//			resultExtendedResource.compute(name, (ignored, oldResource) ->
+//				oldResource == null ? resource : oldResource.merge(resource));
+//		});
 
 		return new ResourceProfile(
-			processingUnitType,
+			mergedProcessingUnitType,
 			cpuCores.merge(other.cpuCores),
 			taskHeapMemory.add(other.taskHeapMemory),
 			taskOffHeapMemory.add(other.taskOffHeapMemory),
