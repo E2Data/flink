@@ -924,12 +924,16 @@ public class SlotManagerImpl implements SlotManager {
 			return Optional.empty();
 		}
 
-		if (!defaultSlotResourceProfile.isMatching(requestedSlotResourceProfile)) {
-			// requested resource profile is unfulfillable
-			return Optional.empty();
-		}
-
-		if (!resourceActions.allocateResource(defaultWorkerResourceSpec)) {
+//		if (!defaultSlotResourceProfile.isMatching(requestedSlotResourceProfile)) {
+//			// requested resource profile is unfulfillable
+//			return Optional.empty();
+//		}
+//
+//		if (!resourceActions.allocateResource(defaultWorkerResourceSpec)) {
+//			// resource cannot be allocated
+//			return Optional.empty();
+//		}
+		if (!resourceActions.allocateResource(WorkerResourceSpec.fromResourceProfile(requestedSlotResourceProfile.merge(defaultSlotResourceProfile)))) {
 			// resource cannot be allocated
 			return Optional.empty();
 		}

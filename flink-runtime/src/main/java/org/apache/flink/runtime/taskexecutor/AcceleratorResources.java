@@ -58,9 +58,10 @@ public class AcceleratorResources {
 	/**
 	 * Mock a dummy accelerator resource for testing.
 	 */
-	@VisibleForTesting
-    public static List<YarnIoResource> testResources = Collections
-            .singletonList(new YarnIoResource("yarn.io/gpu-geforce1080gtx"));
+//	@VisibleForTesting
+//    public static List<YarnIoResource> testResources = Collections
+//            .singletonList(new YarnIoResource("yarn.io/gpu-geforce1080gtx"));
+	public static List<YarnIoResource> testResources = null;
 
     /**
      * Transform yarn.io accelerator resources into extended resources for ResourceProfiles.
