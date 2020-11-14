@@ -21,7 +21,6 @@ package org.apache.flink.runtime.e2data;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.E2DataServerOptions;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
@@ -189,7 +188,6 @@ public class E2DataServer {
 
 			Files.createDirectories(webDir.toPath());
 			LOG.info("Using directory {} as local cache.", webDir);
-
 
 			Router router = new Router();
 			router.addGet("/e2data/:command", new StartFlinkHandler(router));

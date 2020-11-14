@@ -3,11 +3,16 @@ package org.apache.flink.runtime.e2data.handler;
 import org.apache.flink.runtime.rest.handler.router.RouteResult;
 import org.apache.flink.runtime.rest.handler.router.RoutedRequest;
 import org.apache.flink.runtime.rest.handler.router.Router;
+
 import org.apache.flink.shaded.netty4.io.netty.buffer.Unpooled;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandler;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandlerContext;
 import org.apache.flink.shaded.netty4.io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.*;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.DefaultFullHttpResponse;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.FullHttpResponse;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpHeaderNames;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpVersion;
 import org.apache.flink.shaded.netty4.io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
@@ -16,11 +21,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Scanner;
 
+/**
+ * Handles Flink cluster lifecycle.
+ */
 @ChannelHandler.Sharable
 public class StartFlinkHandler extends SimpleChannelInboundHandler<RoutedRequest> {
 
-	private final static String COMMAND = "command";
-	private final static String PATH = "/Users/christos/Projects/flink/flink-dist/target/flink-1.12-SNAPSHOT-bin/flink-1.12-SNAPSHOT/bin/";
+	private static final String COMMAND = "command";
+	private static final String PATH = "/Users/christos/Projects/flink/flink-dist/target/flink-1.12-SNAPSHOT-bin/flink-1.12-SNAPSHOT/bin/";
 
 	/** Default logger, if none is specified. */
 	private static final Logger LOG = LoggerFactory.getLogger(StartFlinkHandler.class);
