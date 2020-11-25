@@ -18,6 +18,7 @@
 
 package org.apache.flink.client.haier;
 
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.ProcessingUnitType;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.api.common.resources.AcceleratorResource;
@@ -100,6 +101,7 @@ public class HaierClient {
 		cleanupTemporaryFile(jobGraphFile);
 
 		return mergeHaierSchedule(jobGraph, haierJobVertices);
+//		return mergeGpuOnlySchedule(jobGraph, haierJobVertices);
 	}
 
 	private java.nio.file.Path createTemporaryFile(@Nonnull JobGraph jobGraph) throws FlinkException {
@@ -203,6 +205,53 @@ public class HaierClient {
 					}
 				}
 			}
+		}
+
+		return jobGraph;
+	}
+
+	// Test CPU scheduling
+	@VisibleForTesting
+	private JobGraph mergeCpuOnlySchedule(JobGraph jobGraph, List<HaierSerializableScheduledJobVertex> haierJobVertices) {
+		int cores = 2; // a non-default value; default == 1
+
+		for (JobVertex vertex : jobGraph.getVertices()) {
+			ResourceSpec spec = ResourceSpec.newBuilder(cores, 0)
+				.setProcessingUnitType(ProcessingUnitType.CPU)
+				.build();
+			vertex.setResources(spec, spec);
+
+			// Make sure that ResourceSpec of SlotSharingGroup is updated. The JobMaster requests YARN
+			// containers based on the the SlotSharingGroup, not the vertex.
+			SlotSharingGroup slotSharingGroup = vertex.getSlotSharingGroup();
+			slotSharingGroup.addVertexToGroup(vertex.getID(), spec);
+
+			LOG.info("HAIER is requesting the resource: " + spec + " for the vertex " + vertex);
+		}
+
+		return jobGraph;
+	}
+
+	// Test GPU scheduling
+	@VisibleForTesting
+	private JobGraph mergeGpuOnlySchedule(JobGraph jobGraph, List<HaierSerializableScheduledJobVertex> haierJobVertices) {
+		String resourceName = "yarn.io/gpu-geforcegtx1080";
+
+		for (JobVertex vertex : jobGraph.getVertices()) {
+			// TODO: Assign host name to AcceleratorResource
+			AcceleratorResource resource = new AcceleratorResource(resourceName);
+			ResourceSpec spec = ResourceSpec.newBuilder(0, 0)
+				.addExtendedResource(resourceName, resource)
+				.setProcessingUnitType(ProcessingUnitType.GPU)
+				.build();
+			vertex.setResources(spec, spec);
+
+			// Make sure that ResourceSpec of SlotSharingGroup is updated. The JobMaster requests YARN
+			// containers based on the the SlotSharingGroup, not the vertex.
+			SlotSharingGroup slotSharingGroup = vertex.getSlotSharingGroup();
+			slotSharingGroup.addVertexToGroup(vertex.getID(), spec);
+
+			LOG.info("HAIER is requesting the resource: " + spec + " for the vertex " + vertex);
 		}
 
 		return jobGraph;
