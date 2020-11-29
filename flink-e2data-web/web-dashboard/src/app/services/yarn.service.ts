@@ -20,7 +20,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { EMPTY, interval, merge, Subject } from 'rxjs';
 import { debounceTime, mapTo, share, startWith, switchMap } from 'rxjs/operators';
-import { YarnClusterInfoInterface } from 'interfaces';
+import { YarnClusterInfoInterface, YarnNodesInfoInterface } from 'interfaces';
 
 const refreshInterval: number = 10000;
 
@@ -50,6 +50,12 @@ export class YarnService {
 
   updateMetrics() {
     return this.httpClient.get<YarnClusterInfoInterface>('http://localhost:8088/ws/v1/cluster/metrics', {
+      headers: headers
+    });
+  }
+
+  updateNodeInformation() {
+    return this.httpClient.get<YarnNodesInfoInterface>('http://localhost:8088/ws/v1/cluster/nodes', {
       headers: headers
     });
   }

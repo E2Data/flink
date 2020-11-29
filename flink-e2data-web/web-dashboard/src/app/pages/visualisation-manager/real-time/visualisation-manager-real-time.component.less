@@ -17,36 +17,59 @@
  */
 @import "theme";
 
-nz-card {
-  ::ng-deep {
-    .ant-card-head {
-      border-bottom: 0;
-    }
-
-    .ant-card-body {
-      padding: 0 24px 8px;
-    }
-  }
-
-  &:not(:last-child) {
-    margin-bottom: 20px;
-  }
-}
-
-.editable-cell {
+:host {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  padding: 0;
+  border: 1px solid @border-color-split;
+  background: @body-background;
+  border-radius: 2px;
   position: relative;
-  padding: 5px 12px;
-  cursor: pointer;
 }
 
-.editable-row:hover .editable-cell {
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  padding: 4px 11px;
+.realtime-page {
+
 }
 
-flink-monaco-editor {
-  height: calc(~"100vh - 160px");
+.nodes-list {
+  list-style-type: none;
+  height: 80vh;
+  overflow: auto;
+  padding: 10px;
+  border-right: 1px solid lightgrey;
+}
+
+.node-header {
+  height: 40px;
+  width: 100%;
+  padding: 10px;
+
+  background-color: white;
+  color: black;
+}
+
+.selected-node {
+  &:extend(.node-header);
+  background-color: #1890ff;
+  color: white;
+}
+
+.node-details {
+  height: 80vh;
+  overflow: auto;
+  padding: 20px;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.total {
+  color: @success-color;
+  font-size: 36px;
+  line-height: 38px;
 }
 
 .footer {

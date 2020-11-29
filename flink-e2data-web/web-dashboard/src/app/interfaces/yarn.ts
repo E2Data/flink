@@ -47,3 +47,58 @@ export interface YarnClusterMetricsInterface {
 export interface YarnClusterInfoInterface {
   clusterMetrics: YarnClusterMetricsInterface;
 }
+
+export interface YarnNodeResourceUtilization {
+  nodePhysicalMemoryMB: number;
+  nodeVirtualMemoryMB: number;
+  nodeCPUUsage: number;
+  aggregatedContainersPhysicalMemoryMB: number;
+  aggregatedContainersVirtualMemoryMB: number;
+  containersCPUUsage: number;
+}
+
+export interface YarnNodeResourceInformation {
+  maximumAllocation: number;
+  minimumAllocation: number;
+  name: string;
+  resourceType: string;
+  units: string;
+  value: number;
+}
+
+export interface YarnNodeResource {
+  memory: number;
+  vCores: number;
+  resourceInformation: YarnNodeResourceInformation[];
+}
+
+export interface YarnNodeInfoInterface {
+  rack: string;
+  state: string;
+  id: string;
+  nodeHostName: string;
+  nodeHTTPAddress: string;
+  lastHealthUpdate: number;
+  version: string;
+  healthReport: string;
+  numContainers: number;
+  usedMemoryMB: number;
+  availMemoryMB: number;
+  usedVirtualCores: number;
+  availableVirtualCores: number;
+  numRunningOpportContainers: number;
+  usedMemoryOpportGB: number;
+  usedVirtualCoresOpport: number;
+  numQueuedContainers: number;
+  resourceUtilization: YarnNodeResourceUtilization;
+  usedResource: YarnNodeResource;
+  availableResource: YarnNodeResource;
+}
+
+export interface YarnNodeInterface {
+  node: YarnNodeInfoInterface[];
+}
+
+export interface YarnNodesInfoInterface {
+  nodes: YarnNodeInterface;
+}

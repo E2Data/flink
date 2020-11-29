@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
-
-import { EChartOption } from 'echarts';
+import { YarnService } from 'services';
+import { YarnNodeInfoInterface } from 'interfaces';
 
 @Component({
   selector: 'visualisation-manager-realtime',
@@ -12,26 +12,28 @@ import { EChartOption } from 'echarts';
 export class VisualisationManagerRealtimeComponent implements OnInit, OnDestroy {
   destroy$ = new Subject();
   isLoading = true;
+  nodes: YarnNodeInfoInterface[];
+  selectedNode: YarnNodeInfoInterface;
 
-  chartOption: EChartOption = {
-    xAxis: {
-      type: 'category',
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        data: [820, 932, 901, 934, 1290, 1330, 1320],
-        type: 'line'
-      }
-    ]
-  };
+  log(val: any) {
+    console.log(val);
+  }
 
-  constructor() {}
+  onSelect(node: YarnNodeInfoInterface) {
+    this.selectedNode = node;
+    this.cdr.markForCheck();
+  }
 
-  ngOnInit() {}
+  constructor(private cdr: ChangeDetectorRef, private yarnService: YarnService) {}
+
+  ngOnInit() {
+    this.yarnService.updateNodeInformation().subscribe(data => {
+      console.log(data);
+      this.nodes = data.nodes.node;
+      console.log(this.nodes);
+      this.cdr.markForCheck();
+    });
+  }
 
   ngOnDestroy() {
     this.destroy$.next();
