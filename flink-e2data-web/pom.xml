@@ -138,7 +138,7 @@ under the License.
 				<!-- Only include the web folder from the web-dashboard directory -->
 				<directory>web-dashboard</directory>
 				<includes>
-					<include>web/**</include>
+					<include>e2data-web/**</include>
 				</includes>
 			</resource>
 			<resource>

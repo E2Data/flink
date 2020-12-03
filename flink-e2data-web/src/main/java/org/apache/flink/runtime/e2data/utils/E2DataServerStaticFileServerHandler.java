@@ -142,12 +142,12 @@ public class E2DataServerStaticFileServerHandler extends SimpleChannelInboundHan
 			// file does not exist. Try to load it with the classloader
 			ClassLoader cl = E2DataServerStaticFileServerHandler.class.getClassLoader();
 
-			try (InputStream resourceStream = cl.getResourceAsStream("web" + requestPath)) {
+			try (InputStream resourceStream = cl.getResourceAsStream("e2data-web" + requestPath)) {
 				boolean success = false;
 				try {
 					if (resourceStream != null) {
-						URL root = cl.getResource("web");
-						URL requested = cl.getResource("web" + requestPath);
+						URL root = cl.getResource("e2data-web");
+						URL requested = cl.getResource("e2data-web" + requestPath);
 
 						if (root != null && requested != null) {
 							URI rootURI = new URI(root.getPath()).normalize();

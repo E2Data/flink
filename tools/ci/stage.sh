@@ -38,6 +38,7 @@ flink-java,\
 flink-optimizer,\
 flink-runtime,\
 flink-runtime-web,\
+flink-e2data-web,\
 flink-scala,\
 flink-streaming-java,\
 flink-streaming-scala,\

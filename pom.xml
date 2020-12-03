@@ -1453,7 +1453,7 @@ under the License.
 						<exclude>flink-e2data-web/web-dashboard/src/assets/**</exclude>
 
 						<!-- generated e2data contents -->
-						<exclude>flink-e2data-web/web-dashboard/web/**</exclude>
+						<exclude>flink-e2data-web/web-dashboard/e2data-web/**</exclude>
 
 						<!-- downloaded and generated web e2data libraries. -->
 						<exclude>flink-e2data-web/web-dashboard/node_modules/**</exclude>
