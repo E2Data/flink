@@ -22,6 +22,7 @@
     "@angular/router": "~7.2.0",
     "@antv/g2": "^3.4.10",
     "@types/echarts": "^4.9.0",
+    "@types/vis": "^4.21.21",
     "core-js": "^2.5.4",
     "d3": "^5.9.1",
     "dagre": "^0.8.4",
@@ -33,6 +34,7 @@
     "request": "^2.88.2",
     "rxjs": "~6.3.3",
     "tslib": "^1.14.1",
+    "vis": "^4.21.0-EOL",
     "zone.js": "~0.8.26"
   },
   "devDependencies": {

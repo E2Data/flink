@@ -1,0 +1,142 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div nz-row>
+  <div nz-col nzSpan="12" class="col">
+    <p><span class="title">ID: </span>{{node.id}}</p>
+    <p><span class="title">Rack: </span>{{node.rack}}</p>
+    <p><span class="title">State: </span>{{node.state}}</p>
+    <p><span class="title">Version: </span>{{node.version}}</p>
+  </div>
+  <div nz-col nzSpan="12" class="col">
+    <p><span class="title">Node Host Name: </span>{{node.nodeHostName}}</p>
+    <p><span class="title">Node HTTP Address: </span>{{node.nodeHTTPAddress}}</p>
+    <p><span class="title">Last Health Update: </span>{{ node.lastHealthUpdate | date:'dd/MM/yyyy'}}</p>
+    <p><span class="title">Health Report: </span>{{node.healthReport.length ? node.healthReport : "-"}}</p>
+  </div>
+</div>
+
+<div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12" [nzLg]="12" [nzXl]="12" class="col">
+  <nz-card [nzBordered]="false" nzTitle="Containers">
+    <ng-container *ngIf="node">
+      <div class="total">{{ node.numContainers }}</div>
+      <div class="footer">
+        <div class="field">
+          <span>Running Opport</span>
+          <span>{{ node.numRunningOpportContainers }}</span>
+        </div>
+        <nz-divider nzType="vertical"></nz-divider>
+        <div class="field">
+          <span>Queued Containers</span>
+          <span>{{ node.numQueuedContainers }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </nz-card>
+</div>
+
+<div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12" [nzLg]="12" [nzXl]="12" class="col">
+  <nz-card [nzBordered]="false" nzTitle="Virtual Cores">
+    <ng-container>
+      <div class="total">{{ node.usedVirtualCores }}</div>
+      <div class="footer">
+        <div class="field">
+          <span>Available</span>
+          <span>{{ node.availableVirtualCores }}</span>
+        </div>
+        <nz-divider nzType="vertical"></nz-divider>
+        <div class="field">
+          <span>Used Opport VCores</span>
+          <span>{{ node.usedVirtualCoresOpport }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </nz-card>
+</div>
+
+<div nz-row>
+  <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12" [nzLg]="12" [nzXl]="12" class="col">
+    <nz-card [nzBordered]="false" nzTitle="Memory">
+      <ng-container>
+        <div class="total">{{ node.usedMemoryMB }}</div>
+        <div class="footer">
+          <div class="field">
+            <span>Available</span>
+            <span>{{ node.availMemoryMB }}</span>
+          </div>
+        </div>
+      </ng-container>
+    </nz-card>
+  </div>
+</div>
+
+<nz-card [nzBordered]="false" [nzTitle]="'Resource Utilization'">
+  <nz-table class="no-border"
+            #resourceUtilizationTable
+            [nzData]="['']"
+            [nzSize]="'small'"
+            [nzFrontPagination]="false"
+            [nzShowPagination]="false">
+    <thead>
+    <tr>
+      <th>Node Physical Memory</th>
+      <th>Node Virtual Memory</th>
+      <th>Node CPU Usage</th>
+      <th>Aggregated Containers Physical Memory</th>
+      <th>Aggregated Containers Virtual Memory</th>
+      <th>Containers CPU Usage</th>
+    </thead>
+    <tbody>
+    <tr>
+      <td>{{node.resourceUtilization.nodePhysicalMemoryMB}}</td>
+      <td>{{node.resourceUtilization.nodeVirtualMemoryMB}}</td>
+      <td>{{node.resourceUtilization.nodeCPUUsage}}</td>
+      <td>{{node.resourceUtilization.aggregatedContainersPhysicalMemoryMB}}</td>
+      <td>{{node.resourceUtilization.aggregatedContainersVirtualMemoryMB}}</td>
+      <td>{{node.resourceUtilization.containersCPUUsage}}</td>
+    </tr>
+    </tbody>
+  </nz-table>
+</nz-card>
+
+<nz-card [nzBordered]="false" [nzTitle]="'Used Resource Information'">
+  <nz-table class="no-border"
+            #resourceInformationTable
+            [nzSize]="'small'"
+            [nzData]="node.usedResource.resourceInformation"
+            [nzFrontPagination]="false"
+            [nzShowPagination]="false">
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Resource Type</th>
+      <th>Value</th>
+      <th>Minimum Allocation</th>
+      <th>Maximum Allocation</th>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of resourceInformationTable.data">
+      <td>{{data.name}}</td>
+      <td>{{data.resourceType}}</td>
+      <td>{{data.value}}</td>
+      <td>{{data.maximumAllocation}}</td>
+      <td>{{data.minimumAllocation}}</td>
+    </tr>
+    </tbody>
+  </nz-table>
+</nz-card>

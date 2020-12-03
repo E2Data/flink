@@ -9,6 +9,7 @@ import { VisualisationManagerRoutingModule } from './visualisation-manager-routi
 import { VisualisationManagerComponent } from './visualisation-manager.component';
 import { VisualisationManagerRealtimeComponent } from './real-time/visualisation-manager-real-time.component';
 import { VisualisationManagerHistoricalComponent } from './historical/visualisation-manager-historical.component';
+import { NodeDetailsComponent } from './real-time/node-details/node-details.component';
 
 @NgModule({
   imports: [
@@ -22,7 +23,8 @@ import { VisualisationManagerHistoricalComponent } from './historical/visualisat
   declarations: [
     VisualisationManagerComponent,
     VisualisationManagerRealtimeComponent,
-    VisualisationManagerHistoricalComponent
+    VisualisationManagerHistoricalComponent,
+    NodeDetailsComponent
   ]
 })
 export class VisualisationManagerModule {}

@@ -16,7 +16,18 @@
   ~ limitations under the License.
   -->
 
-<div nz-row class="realtime-page">
+<nz-tabset>
+  <nz-tab *ngFor="let tab of subTabs" [nzTitle]="tab.title" (nzClick)="showPage(tab.key)"></nz-tab>
+</nz-tabset>
+
+<div *ngIf="selectedTab === topologyKey">
+  <div #network class="topology"></div>
+  <div *ngIf="selectedNode">
+    <node-details [node]="selectedNode"></node-details>
+  </div>
+</div>
+
+<div nz-row class="realtime-page" *ngIf="selectedTab === listKey">
   <ul nz-col [nzMd]="4" class="col nodes-list" *ngIf="nodes">
     <li *ngFor="let node of nodes"
         class="node-header"
@@ -27,130 +38,6 @@
   </ul>
 
   <div nz-col [nzMd]="20" class="col node-details" *ngIf="selectedNode">
-    <div nz-row>
-      <div nz-col nzSpan="12" class="col">
-        <p><span class="title">ID: </span>{{selectedNode.id}}</p>
-        <p><span class="title">Rack: </span>{{selectedNode.rack}}</p>
-        <p><span class="title">State: </span>{{selectedNode.state}}</p>
-        <p><span class="title">Version: </span>{{selectedNode.version}}</p>
-      </div>
-      <div nz-col nzSpan="12" class="col">
-        <p><span class="title">Node Host Name: </span>{{selectedNode.nodeHostName}}</p>
-        <p><span class="title">Node HTTP Address: </span>{{selectedNode.nodeHTTPAddress}}</p>
-        <p><span class="title">Last Health Update: </span>{{ selectedNode.lastHealthUpdate | date:'dd/MM/yyyy'}}</p>
-        <p><span class="title">Health Report: </span>{{selectedNode.healthReport.length ? selectedNode.healthReport : "-"}}</p>
-      </div>
-    </div>
-
-    <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12" [nzLg]="12" [nzXl]="12" class="col">
-      <nz-card [nzBordered]="false" nzTitle="Containers">
-        <ng-container *ngIf="selectedNode">
-          <div class="total">{{ selectedNode.numContainers }}</div>
-          <div class="footer">
-            <div class="field">
-              <span>Running Opport</span>
-              <span>{{ selectedNode.numRunningOpportContainers }}</span>
-            </div>
-            <nz-divider nzType="vertical"></nz-divider>
-            <div class="field">
-              <span>Queued Containers</span>
-              <span>{{ selectedNode.numQueuedContainers }}</span>
-            </div>
-          </div>
-        </ng-container>
-      </nz-card>
-    </div>
-
-    <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12" [nzLg]="12" [nzXl]="12" class="col">
-      <nz-card [nzBordered]="false" nzTitle="Virtual Cores">
-        <ng-container>
-          <div class="total">{{ selectedNode.usedVirtualCores }}</div>
-          <div class="footer">
-            <div class="field">
-              <span>Available</span>
-              <span>{{ selectedNode.availableVirtualCores }}</span>
-            </div>
-            <nz-divider nzType="vertical"></nz-divider>
-            <div class="field">
-              <span>Used Opport VCores</span>
-              <span>{{ selectedNode.usedVirtualCoresOpport }}</span>
-            </div>
-          </div>
-        </ng-container>
-      </nz-card>
-    </div>
-
-    <div nz-row>
-      <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12" [nzLg]="12" [nzXl]="12" class="col">
-        <nz-card [nzBordered]="false" nzTitle="Memory">
-          <ng-container>
-            <div class="total">{{ selectedNode.usedMemoryMB }}</div>
-            <div class="footer">
-              <div class="field">
-                <span>Available</span>
-                <span>{{ selectedNode.availMemoryMB }}</span>
-              </div>
-            </div>
-          </ng-container>
-        </nz-card>
-      </div>
-    </div>
-
-    <nz-card [nzBordered]="false" [nzTitle]="'Resource Utilization'">
-      <nz-table class="no-border"
-                #resourceUtilizationTable
-                [nzData]="['']"
-                [nzSize]="'small'"
-                [nzFrontPagination]="false"
-                [nzShowPagination]="false">
-        <thead>
-        <tr>
-          <th>Node Physical Memory</th>
-          <th>Node Virtual Memory</th>
-          <th>Node CPU Usage</th>
-          <th>Aggregated Containers Physical Memory</th>
-          <th>Aggregated Containers Virtual Memory</th>
-          <th>Containers CPU Usage</th>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{{selectedNode.resourceUtilization.nodePhysicalMemoryMB}}</td>
-            <td>{{selectedNode.resourceUtilization.nodeVirtualMemoryMB}}</td>
-            <td>{{selectedNode.resourceUtilization.nodeCPUUsage}}</td>
-            <td>{{selectedNode.resourceUtilization.aggregatedContainersPhysicalMemoryMB}}</td>
-            <td>{{selectedNode.resourceUtilization.aggregatedContainersVirtualMemoryMB}}</td>
-            <td>{{selectedNode.resourceUtilization.containersCPUUsage}}</td>
-          </tr>
-        </tbody>
-      </nz-table>
-    </nz-card>
-
-    <nz-card [nzBordered]="false" [nzTitle]="'Used Resource Information'">
-      <nz-table class="no-border"
-                #resourceInformationTable
-                [nzSize]="'small'"
-                [nzData]="selectedNode.usedResource.resourceInformations.resourceInformation"
-                [nzFrontPagination]="false"
-                [nzShowPagination]="false">
-        <thead>
-        <tr>
-          <th>Name</th>
-          <th>Resource Type</th>
-          <th>Value</th>
-          <th>Minimum Allocation</th>
-          <th>Maximum Allocation</th>
-        </thead>
-        <tbody>
-        <tr *ngFor="let data of resourceInformationTable.data">
-          <td>{{data.name}}</td>
-          <td>{{data.resourceType}}</td>
-          <td>{{data.value}}</td>
-          <td>{{data.maximumAllocation}}</td>
-          <td>{{data.minimumAllocation}}</td>
-        </tr>
-        </tbody>
-      </nz-table>
-    </nz-card>
-
+    <node-details [node]="selectedNode"></node-details>
   </div>
 </div>
