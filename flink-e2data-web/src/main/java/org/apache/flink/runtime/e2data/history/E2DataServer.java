@@ -16,15 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.e2data;
+package org.apache.flink.runtime.e2data.history;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.configuration.HistoryServerOptions;
+import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.core.plugin.PluginUtils;
+import org.apache.flink.runtime.e2data.E2DataDashboardConfiguration;
+import org.apache.flink.runtime.e2data.E2DataServerOptions;
+import org.apache.flink.runtime.e2data.E2DataServerUtils;
 import org.apache.flink.runtime.e2data.handler.StartFlinkHandler;
 import org.apache.flink.runtime.e2data.utils.E2DataFrontendBootstrap;
 import org.apache.flink.runtime.e2data.utils.E2DataServerStaticFileServerHandler;
@@ -35,10 +40,8 @@ import org.apache.flink.runtime.rest.messages.DashboardConfiguration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.runtime.util.EnvironmentInformation;
-import org.apache.flink.util.ExceptionUtils;
-import org.apache.flink.util.FileUtils;
-import org.apache.flink.util.Preconditions;
-import org.apache.flink.util.ShutdownHookUtil;
+import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
+import org.apache.flink.util.*;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -53,10 +56,13 @@ import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * The E2DataServer provides a WebInterface and REST API for E2Data related tasks.
@@ -83,6 +89,9 @@ public class E2DataServer {
 	private final int webPort;
 	private final long webRefreshIntervalMillis;
 	private final File webDir;
+	private final String flinkWebAddress;
+
+	private final HistoryServerArchiveFetcher archiveFetcher;
 
 	@Nullable
 	private final SSLHandlerFactory serverSSLFactory;
@@ -124,15 +133,21 @@ public class E2DataServer {
 		}
 	}
 
+	public E2DataServer(Configuration config) throws IOException, FlinkException {
+		this(config, (event) -> {});
+	}
+
 	/**
 	 * Creates E2DataServer instance.
 	 * @param config configuration
 	 * @throws IOException When creation of SSL factory failed
 	 */
 	public E2DataServer(
-			Configuration config
-	) throws IOException {
+			Configuration config,
+			Consumer<HistoryServerArchiveFetcher.ArchiveEvent>jobArchiveEventListener
+	) throws IOException, FlinkException {
 		Preconditions.checkNotNull(config);
+		Preconditions.checkNotNull(jobArchiveEventListener);
 
 		this.config = config;
 		if (E2DataServerUtils.isSSLEnabled(config)) {
@@ -149,12 +164,44 @@ public class E2DataServer {
 		webAddress = config.getString(E2DataServerOptions.E2DATA_SERVER_WEB_ADDRESS);
 		webPort = config.getInteger(E2DataServerOptions.E2DATA_SERVER_WEB_PORT);
 		webRefreshIntervalMillis = config.getLong(E2DataServerOptions.E2DATA_SERVER_WEB_REFRESH_INTERVAL);
+		flinkWebAddress = config.getString(E2DataServerOptions.E2DATA_FLINK_SERVER_WEB_ADDRESS);
 
 		String webDirectory = config.getString(E2DataServerOptions.E2DATA_SERVER_WEB_DIR);
 		if (webDirectory == null) {
 			webDirectory = System.getProperty("java.io.tmpdir") + File.separator + "flink-web-e2data-" + UUID.randomUUID();
 		}
 		webDir = new File(webDirectory);
+
+		boolean cleanupExpiredArchives = config.getBoolean(E2DataServerOptions.HISTORY_SERVER_CLEANUP_EXPIRED_JOBS);
+
+		String refreshDirectories = config.getString(E2DataServerOptions.HISTORY_SERVER_ARCHIVE_DIRS);
+		if (refreshDirectories == null) {
+			throw new FlinkException(E2DataServerOptions.HISTORY_SERVER_ARCHIVE_DIRS + " was not configured.");
+		}
+		List<RefreshLocation> refreshDirs = new ArrayList<>();
+		for (String refreshDirectory : refreshDirectories.split(",")) {
+			try {
+				Path refreshPath = WebMonitorUtils.validateAndNormalizeUri(new Path(refreshDirectory).toUri());
+				FileSystem refreshFS = refreshPath.getFileSystem();
+				refreshDirs.add(new RefreshLocation(refreshPath, refreshFS));
+			} catch (Exception e) {
+				// there's most likely something wrong with the path itself, so we ignore it from here on
+				LOG.warn("Failed to create Path or FileSystem for directory '{}'. Directory will not be monitored.", refreshDirectory, e);
+			}
+		}
+
+		if (refreshDirs.isEmpty()) {
+			throw new FlinkException("Failed to validate any of the configured directories to monitor.");
+		}
+
+		long refreshIntervalMillis = config.getLong(E2DataServerOptions.HISTORY_SERVER_ARCHIVE_REFRESH_INTERVAL);
+		int maxHistorySize = config.getInteger(E2DataServerOptions.HISTORY_SERVER_RETAINED_JOBS);
+		if (maxHistorySize == 0 || maxHistorySize < -1){
+			throw new IllegalConfigurationException("Cannot set %s to 0 or less than -1", E2DataServerOptions.HISTORY_SERVER_RETAINED_JOBS.key());
+		}
+		archiveFetcher = new HistoryServerArchiveFetcher(refreshIntervalMillis, refreshDirs, webDir, jobArchiveEventListener,
+			cleanupExpiredArchives, maxHistorySize);
+
 
 		this.shutdownHook = ShutdownHookUtil.addShutdownHook(
 			E2DataServer.this::stop,
@@ -199,6 +246,8 @@ public class E2DataServer {
 
 			createDashboardConfigFile();
 
+			archiveFetcher.start();
+
 			netty = new E2DataFrontendBootstrap(router, LOG, serverSSLFactory, webAddress, webPort, config);
 		}
 	}
@@ -213,6 +262,8 @@ public class E2DataServer {
 				} catch (Throwable t) {
 					LOG.warn("Error while shutting down E2DataFrontendBootstrap.", t);
 				}
+
+				archiveFetcher.stop();
 
 				try {
 					LOG.info("Removing E2Data web dashboard root cache directory {}", webDir);
@@ -244,7 +295,7 @@ public class E2DataServer {
 
 	private void createDashboardConfigFile() throws IOException {
 		try (FileWriter fw = createOrGetFile(webDir, "config")) {
-			fw.write(createConfigJson(DashboardConfiguration.from(webRefreshIntervalMillis, ZonedDateTime.now(), false)));
+			fw.write(createConfigJson(E2DataDashboardConfiguration.from(webRefreshIntervalMillis, ZonedDateTime.now(), false, flinkWebAddress)));
 			fw.flush();
 		} catch (IOException ioe) {
 			LOG.error("Failed to write config file.");
@@ -252,7 +303,7 @@ public class E2DataServer {
 		}
 	}
 
-	private static String createConfigJson(DashboardConfiguration dashboardConfiguration) throws IOException {
+	private static String createConfigJson(E2DataDashboardConfiguration dashboardConfiguration) throws IOException {
 		return OBJECT_MAPPER.writeValueAsString(dashboardConfiguration);
 	}
 

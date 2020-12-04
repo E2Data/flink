@@ -20,15 +20,47 @@ package org.apache.flink.runtime.e2data;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.HistoryServerOptions;
 import org.apache.flink.configuration.SecurityOptions;
+import org.apache.flink.configuration.description.Description;
 
 import static org.apache.flink.configuration.ConfigOptions.key;
+import static org.apache.flink.configuration.description.TextElement.code;
 
 /**
  * The set of configuration options relating to the E2DataServer.
  */
 @PublicEvolving
 public class E2DataServerOptions {
+
+	/**
+	 * The interval at which the HistoryServer polls {@link HistoryServerOptions#HISTORY_SERVER_ARCHIVE_DIRS} for new archives.
+	 */
+	public static final ConfigOption<Long> HISTORY_SERVER_ARCHIVE_REFRESH_INTERVAL =
+		key("historyserver.archive.fs.refresh-interval")
+			.defaultValue(10000L)
+			.withDescription("Interval in milliseconds for refreshing the archived job directories.");
+
+	/**
+	 * Comma-separated list of directories which the HistoryServer polls for new archives.
+	 */
+	public static final ConfigOption<String> HISTORY_SERVER_ARCHIVE_DIRS =
+		key("historyserver.archive.fs.dir")
+			.noDefaultValue()
+			.withDescription("Comma separated list of directories to fetch archived jobs from. The history server will" +
+				" monitor these directories for archived jobs. You can configure the JobManager to archive jobs to a" +
+				" directory via `jobmanager.archive.fs.dir`.");
+
+	/**
+	 * If this option is enabled then deleted job archives are also deleted from HistoryServer.
+	 */
+	public static final ConfigOption<Boolean> HISTORY_SERVER_CLEANUP_EXPIRED_JOBS =
+		key("historyserver.archive.clean-expired-jobs")
+			.defaultValue(false)
+			.withDescription(
+				String.format("Whether HistoryServer should cleanup jobs" +
+					" that are no longer present `%s`.", HISTORY_SERVER_ARCHIVE_DIRS.key()));
+
 
 	/**
 	 * The local directory used by the E2DataServer web-frontend.
@@ -72,6 +104,24 @@ public class E2DataServerOptions {
 			.defaultValue(false)
 			.withDescription("Enable HTTPs access to the E2DataServer web frontend. This is applicable only when the" +
 				" global SSL flag security.ssl.enabled is set to true.");
+
+	public static final ConfigOption<Integer> HISTORY_SERVER_RETAINED_JOBS =
+		key("historyserver.archive.retained-jobs")
+			.intType()
+			.defaultValue(-1)
+			.withDescription(Description.builder()
+				.text(String.format("The maximum number of jobs to retain in each archive directory defined by `%s`. ", HISTORY_SERVER_ARCHIVE_DIRS.key()))
+				.text("If set to `-1`(default), there is no limit to the number of archives. ")
+				.text("If set to `0` or less than `-1` HistoryServer will throw an %s. ", code("IllegalConfigurationException"))
+				.build());
+
+	/**
+	 * The address under which the E2Data web-frontend is accessible.
+	 */
+	public static final ConfigOption<String> E2DATA_FLINK_SERVER_WEB_ADDRESS =
+		key("e2dataserver.flink.web.address")
+			.defaultValue("http://localhost:8081")
+			.withDescription("Address of the Flink's web interface.");
 
 	private E2DataServerOptions() {
 	}

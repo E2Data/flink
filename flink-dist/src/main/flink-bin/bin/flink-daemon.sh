@@ -42,6 +42,10 @@ case $DAEMON in
         CLASS_TO_RUN=org.apache.flink.runtime.webmonitor.history.HistoryServer
     ;;
 
+    (e2dataserver)
+        CLASS_TO_RUN=org.apache.flink.runtime.e2data.history.E2DataServer
+    ;;
+
     (standalonesession)
         CLASS_TO_RUN=org.apache.flink.runtime.entrypoint.StandaloneSessionClusterEntrypoint
     ;;

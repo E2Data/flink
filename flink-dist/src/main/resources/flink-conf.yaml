@@ -260,11 +260,20 @@ jobmanager.execution.failover-strategy: region
 
 # The E2DataServer is started and stopped via bin/start-e2data.sh (start|stop)
 
-# The address under which the web-based E2DataServer listens.
-#e2dataserver.web.address: 0.0.0.0
+# Directory to upload completed jobs to. Add this directory to the list of
+# monitored directories of the HistoryServer as well (see below).
+jobmanager.archive.fs.dir: hdfs:///completed-jobs/
 
-# The port under which the web-based E2DataServer listens.
-#e2dataserver.web.port: 8085
+# The address under which the web-based HistoryServer listens.
+#historyserver.web.address: 0.0.0.0
+
+# The port under which the web-based HistoryServer listens.
+#historyserver.web.port: 8082
+
+# Comma separated list of directories to monitor for completed jobs.
+historyserver.archive.fs.dir: hdfs:///completed-jobs/
 
 # Interval in milliseconds for refreshing the monitored directories.
-#e2dataserver.archive.fs.refresh-interval: 10000
+#historyserver.archive.fs.refresh-interval: 10000
+
+e2dataserver.flink.web.address: http://localhost:8081

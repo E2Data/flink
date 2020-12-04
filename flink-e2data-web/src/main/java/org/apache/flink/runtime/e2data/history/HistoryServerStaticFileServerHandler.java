@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.e2data.utils;
+package org.apache.flink.runtime.e2data.history;
 
 /*****************************************************************************
  * This code is based on the "HttpStaticFileServerHandler" from the
@@ -26,37 +26,20 @@ package org.apache.flink.runtime.e2data.utils;
  * https://github.com/netty/netty/blob/4.0/example/src/main/java/io/netty/example/http/file/HttpStaticFileServerHandler.java
  *****************************************************************************/
 
-import org.apache.flink.runtime.e2data.history.E2DataServer;
 import org.apache.flink.runtime.rest.NotFoundException;
 import org.apache.flink.runtime.rest.handler.RestHandlerException;
 import org.apache.flink.runtime.rest.handler.legacy.files.StaticFileServerHandler;
 import org.apache.flink.runtime.rest.handler.router.RoutedRequest;
 import org.apache.flink.runtime.rest.handler.util.HandlerUtils;
 import org.apache.flink.runtime.rest.messages.ErrorResponseBody;
-
-import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFuture;
-import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFutureListener;
-import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandler;
-import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandlerContext;
-import org.apache.flink.shaded.netty4.io.netty.channel.DefaultFileRegion;
-import org.apache.flink.shaded.netty4.io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.DefaultHttpResponse;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpChunkedInput;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpHeaders;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpRequest;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponse;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.LastHttpContent;
+import org.apache.flink.shaded.netty4.io.netty.channel.*;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.*;
 import org.apache.flink.shaded.netty4.io.netty.handler.ssl.SslHandler;
 import org.apache.flink.shaded.netty4.io.netty.handler.stream.ChunkedFile;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -68,14 +51,12 @@ import java.util.Locale;
 
 import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpHeaders.Names.IF_MODIFIED_SINCE;
-import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus.*;
 import static org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * Simple file server handler used by the {@link E2DataServer} that serves requests to web frontend's static files,
+ * Simple file server handler used by the {@link HistoryServer} that serves requests to web frontend's static files,
  * such as HTML, CSS, JS or JSON files.
  *
  * <p>This code is based on the "HttpStaticFileServerHandler" from the Netty project's HTTP server
@@ -87,17 +68,17 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * page is prevented.
  */
 @ChannelHandler.Sharable
-public class E2DataServerStaticFileServerHandler extends SimpleChannelInboundHandler<RoutedRequest> {
+public class HistoryServerStaticFileServerHandler extends SimpleChannelInboundHandler<RoutedRequest> {
 
 	/** Default logger, if none is specified. */
-	private static final Logger LOG = LoggerFactory.getLogger(E2DataServerStaticFileServerHandler.class);
+	private static final Logger LOG = LoggerFactory.getLogger(HistoryServerStaticFileServerHandler.class);
 
 	// ------------------------------------------------------------------------
 
 	/** The path in which the static documents are. */
 	private final File rootPath;
 
-	public E2DataServerStaticFileServerHandler(File rootPath) throws IOException {
+	public HistoryServerStaticFileServerHandler(File rootPath) throws IOException {
 		this.rootPath = checkNotNull(rootPath).getCanonicalFile();
 	}
 
@@ -141,14 +122,14 @@ public class E2DataServerStaticFileServerHandler extends SimpleChannelInboundHan
 
 		if (!file.exists()) {
 			// file does not exist. Try to load it with the classloader
-			ClassLoader cl = E2DataServerStaticFileServerHandler.class.getClassLoader();
+			ClassLoader cl = HistoryServerStaticFileServerHandler.class.getClassLoader();
 
-			try (InputStream resourceStream = cl.getResourceAsStream("e2data-web" + requestPath)) {
+			try (InputStream resourceStream = cl.getResourceAsStream("web" + requestPath)) {
 				boolean success = false;
 				try {
 					if (resourceStream != null) {
-						URL root = cl.getResource("e2data-web");
-						URL requested = cl.getResource("e2data-web" + requestPath);
+						URL root = cl.getResource("web");
+						URL requested = cl.getResource("web" + requestPath);
 
 						if (root != null && requested != null) {
 							URI rootURI = new URI(root.getPath()).normalize();

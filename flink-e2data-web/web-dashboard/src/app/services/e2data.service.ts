@@ -31,14 +31,22 @@ export class E2DataService {
    */
   jobManagerStatus$ = new ReplaySubject<boolean>();
 
-  constructor(private httpClient: HttpClient) {}
+  flinkWebAddress = '';
+
+  constructor(private httpClient: HttpClient) {
+    this.httpClient.get(`${BASE_URL}/config`).subscribe((data: any) => {
+      console.log(data);
+      this.flinkWebAddress = data['flink-web-address'];
+      console.log(this.flinkWebAddress);
+    });
+  }
 
   /**
    * Pings JobManager and update broadcast if it's online or not
    */
   checkJobManagerStatus() {
     this.httpClient
-      .get(`${BASE_URL}/jobs/overview`, { observe: 'response' })
+      .get(`${this.flinkWebAddress}/jobs/overview`, { observe: 'response' })
       .pipe(first())
       .subscribe(
         resp => {
@@ -59,7 +67,7 @@ export class E2DataService {
   startFlink() {
     console.log(BASE_URL);
     //     this.httpClient.get(`${BASE_URL}/e2data/start/`)
-    this.httpClient.get('http://localhost:8082/e2data/start/', { observe: 'response' }).subscribe(
+    this.httpClient.get('/e2data/start/', { observe: 'response' }).subscribe(
       resp => {
         console.log(resp);
       },
@@ -72,7 +80,7 @@ export class E2DataService {
    */
   stopFlink() {
     //     this.httpClient.get(`${BASE_URL}/e2data/stop/`)
-    this.httpClient.get('http://localhost:8082/e2data/stop-all/', { observe: 'response' }).subscribe(
+    this.httpClient.get('/e2data/stop-all/', { observe: 'response' }).subscribe(
       resp => {
         console.log(resp);
       },
