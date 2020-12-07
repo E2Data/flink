@@ -60,6 +60,13 @@ public class HaierClient {
 
 	private final String haierUrl;
 
+	// The amount of GPUs already assigned by the scheduler (used for testing only)
+	@VisibleForTesting
+	private static int gpus_assigned = 0;
+
+	@VisibleForTesting
+	private final int max_gpus_assigned = 1;
+
 	/**
 	 * Create a HAIER client using settings from the Flink configuration.
 	 *
@@ -238,20 +245,24 @@ public class HaierClient {
 		String resourceName = "yarn.io/gpu-geforcegtx1080";
 
 		for (JobVertex vertex : jobGraph.getVertices()) {
-			// TODO: Assign host name to AcceleratorResource
-			AcceleratorResource resource = new AcceleratorResource(resourceName);
-			ResourceSpec spec = ResourceSpec.newBuilder(0, 0)
-				.addExtendedResource(resourceName, resource)
-				.setProcessingUnitType(ProcessingUnitType.GPU)
-				.build();
-			vertex.setResources(spec, spec);
+			if (this.gpus_assigned < this.max_gpus_assigned) {
+				this.gpus_assigned += 1;
 
-			// Make sure that ResourceSpec of SlotSharingGroup is updated. The JobMaster requests YARN
-			// containers based on the the SlotSharingGroup, not the vertex.
-			SlotSharingGroup slotSharingGroup = vertex.getSlotSharingGroup();
-			slotSharingGroup.addVertexToGroup(vertex.getID(), spec);
+				// TODO: Assign host name to AcceleratorResource
+				AcceleratorResource resource = new AcceleratorResource(resourceName);
+				ResourceSpec spec = ResourceSpec.newBuilder(0, 0)
+					.addExtendedResource(resourceName, resource)
+					.setProcessingUnitType(ProcessingUnitType.GPU)
+					.build();
+				vertex.setResources(spec, spec);
 
-			LOG.info("HAIER is requesting the resource: " + spec + " for the vertex " + vertex);
+				// Make sure that ResourceSpec of SlotSharingGroup is updated. The JobMaster requests YARN
+				// containers based on the the SlotSharingGroup, not the vertex.
+				SlotSharingGroup slotSharingGroup = vertex.getSlotSharingGroup();
+				slotSharingGroup.addVertexToGroup(vertex.getID(), spec);
+
+				LOG.info("HAIER is requesting the resource: " + spec + " for the vertex " + vertex);
+			}
 		}
 
 		return jobGraph;

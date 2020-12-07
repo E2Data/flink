@@ -19,12 +19,16 @@
 package org.apache.flink.runtime.resourcemanager;
 
 import org.apache.flink.api.common.resources.CPUResource;
+import org.apache.flink.api.common.resources.Resource;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.runtime.clusterframework.TaskExecutorProcessSpec;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.util.Preconditions;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -46,6 +50,8 @@ public final class WorkerResourceSpec implements Serializable {
 
 	private final MemorySize managedMemSize;
 
+	private final Map<String, Resource> extendedResources;
+
 	private WorkerResourceSpec(
 		CPUResource cpuCores,
 		MemorySize taskHeapSize,
@@ -58,6 +64,24 @@ public final class WorkerResourceSpec implements Serializable {
 		this.taskOffHeapSize = Preconditions.checkNotNull(taskOffHeapSize);
 		this.networkMemSize = Preconditions.checkNotNull(networkMemSize);
 		this.managedMemSize = Preconditions.checkNotNull(managedMemSize);
+		this.extendedResources = new HashMap<>(1);
+	}
+
+	private WorkerResourceSpec(
+		CPUResource cpuCores,
+		MemorySize taskHeapSize,
+		MemorySize taskOffHeapSize,
+		MemorySize networkMemSize,
+		MemorySize managedMemSize,
+		Map<String, Resource> extendedResources
+		) {
+
+		this.cpuCores = Preconditions.checkNotNull(cpuCores);
+		this.taskHeapSize = Preconditions.checkNotNull(taskHeapSize);
+		this.taskOffHeapSize = Preconditions.checkNotNull(taskOffHeapSize);
+		this.networkMemSize = Preconditions.checkNotNull(networkMemSize);
+		this.managedMemSize = Preconditions.checkNotNull(managedMemSize);
+		this.extendedResources = new HashMap<>(Preconditions.checkNotNull(extendedResources));
 	}
 
 	public static WorkerResourceSpec fromTaskExecutorProcessSpec(final TaskExecutorProcessSpec taskExecutorProcessSpec) {
@@ -77,7 +101,8 @@ public final class WorkerResourceSpec implements Serializable {
 			profile.getTaskHeapMemory(),
 			profile.getTaskOffHeapMemory(),
 			profile.getNetworkMemory(),
-			profile.getManagedMemory()
+			profile.getManagedMemory(),
+			profile.getExtendedResources()
 		);
 	}
 
@@ -101,6 +126,10 @@ public final class WorkerResourceSpec implements Serializable {
 		return managedMemSize;
 	}
 
+	public Map<String, Resource> getExtendedResources() {
+		return Collections.unmodifiableMap(extendedResources);
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(cpuCores, taskHeapSize, taskOffHeapSize, networkMemSize, managedMemSize);
@@ -116,19 +145,33 @@ public final class WorkerResourceSpec implements Serializable {
 				Objects.equals(this.taskHeapSize, that.taskHeapSize) &&
 				Objects.equals(this.taskOffHeapSize, that.taskOffHeapSize) &&
 				Objects.equals(this.networkMemSize, that.networkMemSize) &&
-				Objects.equals(this.managedMemSize, that.managedMemSize);
+				Objects.equals(this.managedMemSize, that.managedMemSize) &&
+				Objects.equals(this.extendedResources, that.extendedResources);
 		}
 		return false;
 	}
 
 	@Override
 	public String toString() {
+		final StringBuilder extendedResourceStr = new StringBuilder(extendedResources.size() * 10);
+		for (Map.Entry<String, Resource> resource : extendedResources.entrySet()) {
+			String key = resource.getKey();
+			Resource value = resource.getValue();
+			if (value == null) {
+				extendedResourceStr.append(", ").append(key).append("= null");
+			}
+			else {
+				extendedResourceStr.append(", ").append(key).append('=').append(value.getName());
+			}
+		}
+
 		return "WorkerResourceSpec {"
 			+ "cpuCores=" + cpuCores.getValue().doubleValue()
 			+ ", taskHeapSize=" + taskHeapSize.toHumanReadableString()
 			+ ", taskOffHeapSize=" + taskOffHeapSize.toHumanReadableString()
 			+ ", networkMemSize=" + networkMemSize.toHumanReadableString()
 			+ ", managedMemSize=" + managedMemSize.toHumanReadableString()
+			+ extendedResourceStr
 			+ "}";
 	}
 

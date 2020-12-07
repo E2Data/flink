@@ -121,10 +121,20 @@ class WorkerSpecContainerResourceAdapter {
 	private InternalContainerResource createAndMapContainerResource(final WorkerResourceSpec workerResourceSpec) {
 		final TaskExecutorProcessSpec taskExecutorProcessSpec =
 			TaskExecutorProcessUtils.processSpecFromWorkerResourceSpec(flinkConfig, workerResourceSpec);
+
+		final Map<String, Long> extendedResources = new HashMap<>();
+		for (Map.Entry<String, org.apache.flink.api.common.resources.Resource> item : workerResourceSpec.getExtendedResources().entrySet()) {
+			// String key = item.getKey();
+			org.apache.flink.api.common.resources.Resource resource = item.getValue();
+			String name = resource.getName();
+			long amount = resource.getValue().longValue();
+			extendedResources.put(name, amount);
+		}
+
 		final InternalContainerResource internalContainerResource = new InternalContainerResource(
 			normalize(taskExecutorProcessSpec.getTotalProcessMemorySize().getMebiBytes(), minMemMB),
 			normalize(taskExecutorProcessSpec.getCpuCores().getValue().intValue(), minVcore),
-			externalResourceConfigs);
+			extendedResources);
 
 		if (resourceWithinMaxAllocation(internalContainerResource)) {
 			containerResourceToWorkerSpecs.computeIfAbsent(internalContainerResource, ignored -> new HashSet<>())
@@ -192,6 +202,7 @@ class WorkerSpecContainerResourceAdapter {
 
 		private Resource toResource() {
 			final Resource resource = Resource.newInstance(memory, vcores);
+			//resource.setResourceValue("yarn.io/gpu-geforcegtx1080", 1);
 			trySetExternalResources(externalResources, resource);
 			return resource;
 		}
