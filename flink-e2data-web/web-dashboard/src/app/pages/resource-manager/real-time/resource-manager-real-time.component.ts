@@ -13,12 +13,12 @@ import { YarnNodeInfoInterface } from 'interfaces';
 import { Network, DataSet } from 'vis';
 
 @Component({
-  selector: 'visualisation-manager-realtime',
-  templateUrl: './visualisation-manager-real-time.component.html',
-  styleUrls: ['./visualisation-manager-real-time.component.less'],
+  selector: 'resource-manager-realtime',
+  templateUrl: './resource-manager-real-time.component.html',
+  styleUrls: ['./resource-manager-real-time.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class VisualisationManagerRealtimeComponent implements OnInit, OnDestroy {
+export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
   readonly listKey = 'list';
   readonly topologyKey = 'topology';
 

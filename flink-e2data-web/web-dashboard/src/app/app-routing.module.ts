@@ -30,8 +30,8 @@ const routes: Routes = [
     loadChildren: './pages/haier-manager/haier-manager.module#HaierManagerModule'
   },
   {
-    path: 'visualisation-manager',
-    loadChildren: './pages/visualisation-manager/visualisation-manager.module#VisualisationManagerModule'
+    path: 'resource-manager',
+    loadChildren: './pages/resource-manager/resource-manager.module#ResourceManagerModule'
   },
   { path: '**', redirectTo: 'overview', pathMatch: 'full' }
 ];
