@@ -102,3 +102,14 @@ export interface YarnNodeInterface {
 export interface YarnNodesInfoInterface {
   nodes: YarnNodeInterface;
 }
+
+export interface ResourceManagerNodeInterface {
+  node: YarnNodeInfoInterface;
+  availableModules: string;
+  hasCpu: boolean;
+  hasGpu: boolean;
+  hasFpga: boolean;
+  usingCpu: boolean;
+  usingGpu: boolean;
+  usingFpga: boolean;
+}

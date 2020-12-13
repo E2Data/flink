@@ -38,18 +38,34 @@
 }
 
 .node-header {
-  height: 40px;
+  height: 80px;
   width: 100%;
   padding: 10px;
 
   background-color: white;
   color: black;
+
+  >div>img {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
+    filter: invert(1);
+  }
 }
 
 .selected-node {
   &:extend(.node-header);
   background-color: #1890ff;
   color: white;
+
+  >div>img {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
+    filter: invert(0);
+  }
 }
 
 .col {

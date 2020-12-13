@@ -30,11 +30,16 @@
 
   <div nz-row class="realtime-page" *ngIf="selectedTab === listKey">
     <ul nz-col [nzMd]="4" class="col nodes-list" *ngIf="nodes">
-      <li *ngFor="let node of nodes"
+      <li *ngFor="let node of nodes; let i = index"
           class="node-header"
           [class.selected-node]="node === selectedNode"
           (click)="onSelect(node)">
         {{node.id}}
+        <div>
+          <img *ngIf="nodesInfo[i].hasCpu" height="32" width="32" src="assets/icons/cpu.png">
+          <img *ngIf="nodesInfo[i].hasGpu" height="32" width="32" src="assets/icons/gpu.png">
+          <img *ngIf="nodesInfo[i].hasFpga" height="32" width="32" src="assets/icons/fpga.png">
+        </div>
       </li>
     </ul>
 
