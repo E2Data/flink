@@ -16,28 +16,36 @@
   ~ limitations under the License.
   -->
 
-<nz-tabset>
-  <nz-tab *ngFor="let tab of subTabs" [nzTitle]="tab.title" (nzClick)="showPage(tab.key)"></nz-tab>
-</nz-tabset>
+<div *ngIf="nodes">
+  <nz-tabset>
+    <nz-tab *ngFor="let tab of subTabs" [nzTitle]="tab.title" (nzClick)="showPage(tab.key)"></nz-tab>
+  </nz-tabset>
 
-<div *ngIf="selectedTab === topologyKey">
-  <div #network class="topology"></div>
-  <div *ngIf="selectedNode">
-    <node-details [node]="selectedNode"></node-details>
+  <div *ngIf="selectedTab === topologyKey">
+    <div #network class="topology"></div>
+    <div *ngIf="selectedNode">
+      <node-details [node]="selectedNode"></node-details>
+    </div>
+  </div>
+
+  <div nz-row class="realtime-page" *ngIf="selectedTab === listKey">
+    <ul nz-col [nzMd]="4" class="col nodes-list" *ngIf="nodes">
+      <li *ngFor="let node of nodes"
+          class="node-header"
+          [class.selected-node]="node === selectedNode"
+          (click)="onSelect(node)">
+        {{node.id}}
+      </li>
+    </ul>
+
+    <div nz-col [nzMd]="20" class="col node-details" *ngIf="selectedNode">
+      <node-details [node]="selectedNode"></node-details>
+    </div>
   </div>
 </div>
 
-<div nz-row class="realtime-page" *ngIf="selectedTab === listKey">
-  <ul nz-col [nzMd]="4" class="col nodes-list" *ngIf="nodes">
-    <li *ngFor="let node of nodes"
-        class="node-header"
-        [class.selected-node]="node === selectedNode"
-        (click)="onSelect(node)">
-      {{node.id}}
-    </li>
-  </ul>
-
-  <div nz-col [nzMd]="20" class="col node-details" *ngIf="selectedNode">
-    <node-details [node]="selectedNode"></node-details>
-  </div>
+<div *ngIf="!nodes">
+  <nz-card>
+    Couldn't reach the YARN client!
+  </nz-card>
 </div>

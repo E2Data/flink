@@ -63,7 +63,8 @@ import {
   ReloadOutline,
   DownloadOutline,
   ShrinkOutline,
-  PicCenterOutline
+  PicCenterOutline,
+  ApartmentOutline
 } from '@ant-design/icons-angular/icons';
 
 import { StatusService } from 'services';
@@ -132,7 +133,8 @@ export function AppInitServiceFactory(statusService: StatusService, injector: In
         FullscreenOutline,
         ArrowsAltOutline,
         ShrinkOutline,
-        PicCenterOutline
+        PicCenterOutline,
+        ApartmentOutline
       ]
     },
     {
