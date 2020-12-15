@@ -54,6 +54,19 @@
   }
 }
 
+.node-overlay {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 300px;
+  height: 100px;
+  border: 1px solid #1890ff;
+  background-color: white;
+  color: black;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
 .selected-node {
   &:extend(.node-header);
   background-color: #1890ff;
@@ -68,6 +81,11 @@
   }
 }
 
+.node-details {
+  height: 80vh;
+  overflow: auto;
+}
+
 .col {
   margin-bottom: 24px;
 }
@@ -77,5 +95,13 @@ nz-divider {
 }
 
 .topology {
-  height: 300px;
+  height: 20vh;
+}
+
+.node-details-topology {
+  border-top: 1px solid lightgrey;
+  padding-top: 10px;
+  margin-top: 10px;
+  height: calc(60vh - 10px);
+  overflow: auto;
 }

@@ -23,7 +23,10 @@
 
   <div *ngIf="selectedTab === topologyKey">
     <div #network class="topology"></div>
-    <div *ngIf="selectedNode">
+    <div class="node-overlay" *ngIf="nodeDetailsInfo.length > 0">
+      {{nodeDetailsInfo}}
+    </div>
+    <div *ngIf="selectedNode" class="node-details-topology">
       <node-details [node]="selectedNode"></node-details>
     </div>
   </div>

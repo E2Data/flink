@@ -114,7 +114,7 @@
   </nz-table>
 </nz-card>
 
-<nz-card [nzBordered]="false" [nzTitle]="'Used Resource Information'">
+<nz-card [nzBordered]="false" [nzTitle]="'Used Resource Information'" *ngIf="node.usedResource.resourceInformation">
   <nz-table class="no-border"
             #resourceInformationTable
             [nzSize]="'small'"
