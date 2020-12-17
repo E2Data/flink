@@ -32,6 +32,8 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
       // initially setter gets called with undefined
       this.networkElement = content;
       this.createNetworkTopology();
+      this.networkVis.fit({ minZoomLevel: 1.2, maxZoomLevel: 1.2 });
+      console.log(this.networkVis.getScale());
     }
   }
   private networkVis: any;
@@ -66,14 +68,25 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
 
   createNetworkTopology() {
     const container = this.networkElement.nativeElement;
-    const nodesData = new DataSet<any>([{ id: 'network', label: 'Network' }]);
+    const nodesData = new DataSet<any>([
+      {
+        id: 'network',
+        label: 'Network',
+        image: 'assets/icons/cloud-computing.svg',
+        shape: 'image',
+        size: 20
+      }
+    ]);
     const edges = new DataSet<any>([]);
 
     console.log(this.nodesInfo);
     this.nodesInfo.forEach(n => {
       nodesData.add({
         id: n.node.id,
-        label: n.node.id
+        label: n.node.id,
+        image: 'assets/icons/server.svg',
+        shape: 'image',
+        size: 20
       });
       edges.add({ from: 'network', to: n.node.id });
     });
@@ -84,8 +97,8 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
         hover: true,
         hoverConnectedEdges: false,
         dragNodes: false,
-        dragView: false,
-        zoomView: false,
+        //         dragView: false,
+        //         zoomView: false,
         selectConnectedEdges: false
       },
       nodes: {
@@ -100,7 +113,8 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
       layout: {
         hierarchical: {
           direction: 'UD',
-          sortMethod: 'directed'
+          sortMethod: 'directed',
+          levelSeparation: 100
         }
       },
       edges: {
@@ -109,6 +123,7 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
     };
 
     this.networkVis = new Network(container, data, options);
+    this.networkVis.fit();
     this.networkVis.on('click', (properties: any) => {
       let nodeId = properties.nodes[0];
       const node = this.nodes.find(n => n.id === nodeId);

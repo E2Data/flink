@@ -21,7 +21,7 @@
     <nz-tab *ngFor="let tab of subTabs" [nzTitle]="tab.title" (nzClick)="showPage(tab.key)"></nz-tab>
   </nz-tabset>
 
-  <div *ngIf="selectedTab === topologyKey">
+  <div *ngIf="selectedTab === topologyKey" class="topology-page">
     <div #network class="topology"></div>
     <div class="node-overlay" *ngIf="nodeDetailsInfo.length > 0">
       {{nodeDetailsInfo}}
@@ -57,3 +57,5 @@
     Couldn't reach the YARN client!
   </nz-card>
 </div>
+
+<!--<div class="icons-attribution">Icons made by <a href="https://www.flaticon.com/authors/dinosoftlabs" title="DinosoftLabs">DinosoftLabs</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>-->
