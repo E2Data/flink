@@ -65,7 +65,7 @@ public abstract class Resource implements Serializable {
 		checkArgument(name.equals(other.name), "Minus with different resource name");
 		checkArgument(value.compareTo(other.value) >= 0, "Try to subtract a larger resource from this one.");
 
-		return create(value.subtract(other.value));
+		return create(value.min(other.value));
 	}
 
 	public Resource multiply(BigDecimal multiplier) {
