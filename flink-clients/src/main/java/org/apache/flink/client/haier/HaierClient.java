@@ -109,6 +109,7 @@ public class HaierClient {
 
 		return mergeHaierSchedule(jobGraph, haierJobVertices);
 //		return mergeGpuOnlySchedule(jobGraph, haierJobVertices);
+//		return mergeCpuOnlySchedule(jobGraph, haierJobVertices);
 	}
 
 	private java.nio.file.Path createTemporaryFile(@Nonnull JobGraph jobGraph) throws FlinkException {
