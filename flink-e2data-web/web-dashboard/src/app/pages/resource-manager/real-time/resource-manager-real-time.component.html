@@ -27,7 +27,7 @@
       {{nodeDetailsInfo}}
     </div>
     <div *ngIf="selectedNode" class="node-details-topology">
-      <node-details [node]="selectedNode"></node-details>
+      <node-details [node]="selectedNode" [pduInfo]="pduInfoText"></node-details>
     </div>
   </div>
 
@@ -47,7 +47,7 @@
     </ul>
 
     <div nz-col [nzMd]="20" class="col node-details" *ngIf="selectedNode">
-      <node-details [node]="selectedNode"></node-details>
+      <node-details [node]="selectedNode" [pduInfo]="pduInfoText"></node-details>
     </div>
   </div>
 </div>

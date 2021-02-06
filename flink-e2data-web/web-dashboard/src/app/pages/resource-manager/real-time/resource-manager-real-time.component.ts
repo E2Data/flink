@@ -9,8 +9,8 @@ import {
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { StatusService, YarnService } from 'services';
-import { YarnNodeInfoInterface, ResourceManagerNodeInterface } from 'interfaces';
+import { StatusService, YarnService, PDUService } from 'services';
+import { YarnNodeInfoInterface, ResourceManagerNodeInterface, E2DataPDU } from 'interfaces';
 import { Network, DataSet } from 'vis';
 
 @Component({
@@ -25,6 +25,9 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
   readonly CPU = 'vcores';
   readonly GPU = 'yarn.io/gpu';
   readonly FPGA = 'yarn.io/fpga';
+  readonly currentKey = 'rPDU2OutletMeteredStatusCurrent';
+  readonly energyKey = 'rPDU2OutletMeteredStatusEnergy';
+  readonly powerKey = 'rPDU2OutletMeteredStatusPower';
 
   private networkElement: ElementRef;
   @ViewChild('network') set content(content: ElementRef) {
@@ -33,7 +36,7 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
       this.networkElement = content;
       this.createNetworkTopology();
       this.networkVis.fit({ minZoomLevel: 1.2, maxZoomLevel: 1.2 });
-      console.log(this.networkVis.getScale());
+      //       console.log(this.networkVis.getScale());
     }
   }
   private networkVis: any;
@@ -49,12 +52,29 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
   subTabs = [{ key: this.listKey, title: 'List' }, { key: this.topologyKey, title: 'Topology' }];
   selectedTab = this.listKey;
 
+  pduInfoText: string = '';
+  pduData: E2DataPDU;
+  pduMap: any = {
+    silver1: '1',
+    gold1: '2',
+    gold3: '4',
+    termi7: '5',
+    termi8: '5',
+    termi9: '6',
+    termi10: '6',
+    termi11: '7',
+    termi12: '7',
+    cognito: '22',
+    quest: '23'
+  };
+
   log(val: any) {
     console.log(val);
   }
 
   onSelect(node: any) {
     this.selectedNode = node;
+    this.getPDUInfo(node.id);
     this.cdr.markForCheck();
   }
 
@@ -62,7 +82,7 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
     this.selectedNode = null;
     this.selectedTab = key;
     this.networkVis = null;
-    console.log(this.selectedTab);
+    //     console.log(this.selectedTab);
     this.cdr.markForCheck();
   }
 
@@ -79,7 +99,7 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
     ]);
     const edges = new DataSet<any>([]);
 
-    console.log(this.nodesInfo);
+    //     console.log(this.nodesInfo);
     this.nodesInfo.forEach(n => {
       nodesData.add({
         id: n.node.id,
@@ -148,7 +168,11 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
         if (using.endsWith(', ')) using = using.slice(0, -2);
         if (using.length > 0) title += 'Using: ' + using + '\n';
 
+        const pduInfo = this.getPDUInfo(nodeInfo.node.id);
+        if (pduInfo.length > 0) title += pduInfo;
+
         this.nodeDetailsInfo = title;
+
         this.cdr.markForCheck();
       }
     });
@@ -161,7 +185,9 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
   parseNode(node: any): any {
     var modules: string[] = [];
     node.availableResource.resourceInformations.resourceInformation.forEach((r: any) => {
-      modules.push(r.name);
+      if (r.value > 0) {
+        modules.push(r.name);
+      }
     });
     const modulesString = modules.join();
 
@@ -173,6 +199,7 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
     var usingGpu = false;
     var usingFpga = false;
     node.usedResource.resourceInformations.resourceInformation.forEach((r: any) => {
+      //       console.log(r)
       if (r.name.includes(this.CPU) && r.value > 0) {
         usingCpu = true;
       }
@@ -195,11 +222,32 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
       usingFpga: usingFpga
     };
 
-    console.log(item);
+    //     console.log(item);
     return item;
   }
 
-  constructor(private cdr: ChangeDetectorRef, private yarnService: YarnService, private statusService: StatusService) {}
+  getPDUInfo(name: string) {
+    const keys = Object.keys(this.pduMap);
+    for (var i = 0; i < keys.length; i++) {
+      if (name.includes(keys[i])) {
+        const value = this.pduMap[keys[i]];
+        const current = this.pduData[this.currentKey + value];
+        const energy = this.pduData[this.energyKey + value];
+        const power = this.pduData[this.powerKey + value];
+
+        return 'Current: ' + current + '\nEnergy: ' + energy + '\nPower: ' + power;
+      }
+    }
+
+    return '';
+  }
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private yarnService: YarnService,
+    private statusService: StatusService,
+    private pduService: PDUService
+  ) {}
 
   ngOnInit() {
     this.statusService.refresh$.pipe(takeUntil(this.destroy$)).subscribe(_ => {
@@ -217,6 +265,11 @@ export class ResourceManagerRealtimeComponent implements OnInit, OnDestroy {
           }
         });
 
+        this.cdr.markForCheck();
+      });
+
+      this.pduService.updatePDUMetrics().subscribe(data => {
+        this.pduData = data;
         this.cdr.markForCheck();
       });
     });

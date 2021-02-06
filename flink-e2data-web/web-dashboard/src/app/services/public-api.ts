@@ -26,3 +26,4 @@ export * from './metrics.service';
 export * from './haier.service';
 export * from './e2data.service';
 export * from './yarn.service';
+export * from './pdu.service';

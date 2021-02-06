@@ -9,6 +9,8 @@ import { YarnNodeInfoInterface } from 'interfaces';
 export class NodeDetailsComponent {
   @Input()
   node: YarnNodeInfoInterface;
+  @Input()
+  pduInfo: string;
 
   constructor() {}
 }
