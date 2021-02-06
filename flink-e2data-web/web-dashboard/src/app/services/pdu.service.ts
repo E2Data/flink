@@ -49,7 +49,7 @@ export class PDUService {
   }
 
   updatePDUMetrics() {
-    return this.httpClient.get<E2DataPDU>('http://localhost:58095/', {
+    return this.httpClient.get<E2DataPDU>('http://localhost:8095/', {
       headers: headers
     });
   }
